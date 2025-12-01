@@ -37,7 +37,7 @@ function QuizList() {
     const [quizzes, setQuizzes] = useState<Array<QUIZ_LIST_OPTIONS>>([]);
     // For demonstration:
     // const [quizzes, setQuizzes] = useState<Array<QUIZ_LIST_OPTIONS>>(demoQuizzes);
-    const url: string = 'https://quick-quiz-257248753584.europe-west1.run.app/api/quizzes';
+    const url: string = 'https://quick-quiz-257248753584.us-central1.run.app/api/quizzes';
 
 
     const initHeaders: Headers = new Headers();

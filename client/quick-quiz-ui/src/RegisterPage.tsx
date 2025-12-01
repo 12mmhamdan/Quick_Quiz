@@ -29,7 +29,7 @@ function RegisterPage() {
     const [loginInfo, setLoginInfo] = useState<LOGIN_OPTIONS>(defaultLogin);
     const [errors, setErrors] = useState<Array<string>>([]);
 
-    const url: string = 'https://quick-quiz-257248753584.europe-west1.run.app/api/user/register';
+    const url: string = 'hhttps://quick-quiz-257248753584.us-central1.run.app/api/user/register';
     const navigate: Function = useNavigate()
 
 

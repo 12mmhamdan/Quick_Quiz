@@ -63,7 +63,7 @@ function TakeQuiz() {
     useState<QUIZ_RESULT_OPTIONS>(userAnswersTemplate);
   const [errors, setErrors] = useState<Array<string>>([]);
   const [userId, setUserId] = useState<number>(0);
-  const url: string = "https://quick-quiz-257248753584.europe-west1.run.app/api/quiz-results";
+  const url: string = "https://quick-quiz-257248753584.us-central1.run.app/api/quiz-results";
 
   const navigate = useNavigate();
   const { id } = useParams();
@@ -73,7 +73,7 @@ function TakeQuiz() {
     console.log("Quiz ID:", id); // Debug: Check the ID
 
     if (id) {
-      fetch(`https://quick-quiz-257248753584.europe-west1.run.app/api/quizzes/${id}`, {
+      fetch(`https://quick-quiz-257248753584.us-central1.run.app/api/quizzes/${id}`, {
         headers: {
           Authorization: "Bearer " + sessionStorage.getItem("token"),
         },
@@ -99,7 +99,7 @@ function TakeQuiz() {
           });
         })
         .catch((error) => console.log("Error fetching quiz data:", error));
-      fetch(`https://quick-quiz-257248753584.europe-west1.run.app/api/questions/${id}`, {
+      fetch(`https://quick-quiz-257248753584.us-central1.run.app/api/questions/${id}`, {
         headers: {
           Authorization: "Bearer " + sessionStorage.getItem("token"),
         },
@@ -120,7 +120,7 @@ function TakeQuiz() {
         .catch((error) => console.log("Error fetching question data:", error));
 
       // fetch to get userId
-      fetch(`https://quick-quiz-257248753584.europe-west1.run.app/api/user/${sessionStorage.getItem('username')}`, {
+      fetch(`https://quick-quiz-257248753584.us-central1.run.app/api/user/${sessionStorage.getItem('username')}`, {
         headers: {
           Authorization: "Bearer " + sessionStorage.getItem("token"),
         },

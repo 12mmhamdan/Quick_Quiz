@@ -72,7 +72,7 @@ function AddQuiz() {
 
     const [errors, setErrors] = useState<Array<string>>([]);
 
-    const url: string = 'https://quick-quiz-257248753584.europe-west1.run.app/api/quizzes';
+    const url: string = 'https://quick-quiz-257248753584.us-central1.run.app/api/quizzes';
     const navigate: Function = useNavigate();
 
     // We're not loading anything, so no need to use `useEffect()` here.
@@ -172,7 +172,7 @@ function AddQuiz() {
 
 
             // POST the question to the server
-            fetch('https://quick-quiz-257248753584.europe-west1.run.app/api/questions', init)
+            fetch('https://quick-quiz-257248753584.us-central1.run.app/api/questions', init)
                 .then(response => {
                     if (response.status === 201 || response.status === 400) {
                         return response.json();
@@ -205,7 +205,7 @@ function AddQuiz() {
                             }
 
                             // POST the option to the server
-                            fetch('https://quick-quiz-257248753584.europe-west1.run.app/api/options', initOp)
+                            fetch('https://quick-quiz-257248753584.us-central1.run.app/api/options', initOp)
                                 .then(response => {
                                     if (response.status === 201 || response.status === 400) {
                                         return response.json();

@@ -29,7 +29,7 @@ function EditQuiz() {
     // State
     const [questions, setQuestions] = useState<Array<TAKE_QUIZ_OPTIONS>>([]);
     const [errors, setErrors] = useState<Array<string>>([]);
-    const url: string = 'https://quick-quiz-257248753584.europe-west1.run.app/api/questions';
+    const url: string = 'https://quick-quiz-257248753584.us-central1.run.app/api/questions';
 
     const navigate: Function = useNavigate();
     const { id } = useParams();
@@ -139,7 +139,7 @@ function EditQuiz() {
                     body: JSON.stringify(option)
                 }
 
-                fetch(`${"https://quick-quiz-257248753584.europe-west1.run.app/api/options"}/${option.optionId}`, init2)
+                fetch(`${"https://quick-quiz-257248753584.us-central1.run.app/api/options"}/${option.optionId}`, init2)
                     .then(response => {
                         console.log(option);
                         console.log(`${url}/${option.optionId}`);
