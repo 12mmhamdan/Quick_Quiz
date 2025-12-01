@@ -44,34 +44,38 @@ function RegisterPage() {
         setLoginInfo(newLoginInfo);
     }
 
-    // Attempt to add the new user:
+    //Attempt to add new users
     function addNewUser() {
-        const initHeaders: Headers = new Headers();
-        initHeaders.append('Content-Type', 'application/json');
-        const init: INIT = {
-            method: 'POST',
-            headers: initHeaders,
-            body: JSON.stringify(loginInfo)
-        }
+    const initHeaders: Headers = new Headers();
+    initHeaders.append('Content-Type', 'application/json');
 
-        fetch(url, init)
-            .then(response => {
-                if (response.status === 201) {    // Response code from the Agent Security example
-                    return null;
-                }  else {
-                    return response.json();
-                }
-            })
-            .then(data => {
-                if (!data) {
-                    window.alert('Success! Please log in with your new account.')
-                    navigate('/login');
-                } else {
-                    setErrors(data);
-                }
-            })
-            .catch(console.log);
-    }
+    const init: INIT = {
+        method: 'POST',
+        headers: initHeaders,
+        body: JSON.stringify(loginInfo)
+    };
+
+    fetch(url, init)
+        .then(response => {
+            if (response.status === 201) {
+                return null;
+            } else {
+                return response.json();
+            }
+        })
+        .then(data => {
+            if (!data) {
+                window.alert('Success! Please log in with your new account.');
+                navigate('/login');
+            } else {
+                setErrors(data);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            setErrors(["Could not reach server. Please try again later."]);
+        });
+}
 
     return (<>
         <section className="container">

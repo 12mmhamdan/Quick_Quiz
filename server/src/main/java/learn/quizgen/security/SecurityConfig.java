@@ -27,12 +27,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
         http.cors();
 
-        // Authorization rules
         http.authorizeRequests()
+                .antMatchers(HttpMethod.OPTIONS, "/**").permitAll() // allow preflight
                 .antMatchers("/api/user/authenticate").permitAll()
                 .antMatchers("/api/user/register").permitAll()
                 .antMatchers("/api/user/**").permitAll()
-                .antMatchers(HttpMethod.GET, "/api/quizzes",    "/api/quizzes/*").hasAnyRole("Teacher", "Student")
+                .antMatchers(HttpMethod.GET, "/api/quizzes", "/api/quizzes/*").hasAnyRole("Teacher", "Student")
                 .antMatchers("/api/quizzes/**").hasRole("Teacher")
                 .antMatchers("/api/quiz-results").hasAnyRole("Teacher", "Student")
                 .antMatchers("/api/questions").hasRole("Teacher")
@@ -61,8 +61,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000") // Allow the React app to communicate with the backend
-                        .allowedMethods("*"); // Allow all HTTP methods
+                        .allowedOrigins("https://quick-quiz-ecru.vercel.app")// Allow the React app to communicate with the backend
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);// Allow all HTTP methods
             }
         };
     }
