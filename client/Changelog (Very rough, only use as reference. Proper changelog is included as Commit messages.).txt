@@ -1,0 +1,96 @@
+Capstone Ex Changelog
+1. deleted files
+2. files to create:
+
+TakeQuiz *
+
+AddQuiz * (Added delete, update is under EditQuiz)
+EditQuiz *
+
+QuizList (Browse quiz) *
+
+One ScoresList for now *
+
+-------------
+(??? May not need, consider this last)
+TeacherDashboard
+StudentDashboard
+
+??? - should these be the same file?
+Do these individually tomorrow (9/23) and fold them into one file if necessary
+(9/23) fuck that, just do one and see
+IndividualScoresList
+AllScoresList
+-------------
+
+3. started work on AddQuiz
+4. completed first draft of AddQuiz
+5. completed first draft of QuizList
+6. Started TakeQuiz, need to figure out value and onchange
+	Add button before </tbody>
+7. Completed TakeQuiz, but it will 99% need some work at the end
+8. NOTE:
+Need to add Update and Delete to QuizList
+9. Added Delete to QuizList
+10. Adding Edit to EditQuiz + Created EditQuiz file
+	Placeholder handleChange, will need to test and edit
+
+- 9/23, test using console.log at the end of the day
+- REVIEW TakeQuiz.tsx:
+	- option 1: change the prompt so that it doesn't have any of the options be dupes
+	- option 2 <-- this one: change to array-based solution instead of iterating through entire array
+
+11. Updated gitignore
+12. Updated TakeQuiz
+
+13. TODO
+moved to 15
+
+14. Added INIT interface to all files with an INIT
+
+15. TODO
+Implement POST to TakeQuiz (handleSubmit, function) <---------------- IMPORTANT!!!!!!!!
+Finish RegisterPage.tsx
+Update links from the Controllers
+
+
+// Security summary
+POST --> Register (makes new account/user)
+POST --> Authenticate (returns new token)
+Token --> Authorization
+	Returns request w/out error
+
+// Install
+TypeScript with React
+React-Router-Dom
+
+
+//
+Notes:
+
+interface QUIZ_FORM_OPTIONS {
+    teacherName: string,
+    quizName: string,
+    numberOfQuestions: number,
+    numberOfAnswers: number,
+    topic: string,
+    prompt: string
+}
+
+TakeQuiz
+similar to SolarPanelList but with a form?
+
+multiple choice, <radio>
+https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio
+
+handleSubmit: function handleSubmit(input: React.FormEvent<HTMLFormElement>) {
+handleChange: function handleChange(input: React.FormEvent<HTMLInputElement>) {
+
+// Resources used
+const Root fix index:
+https://stackoverflow.com/questions/71808102/react-18-type-null-is-not-assignable-to-type-element-documentfragment
+
+state vars in ts:
+https://www.robinwieruch.de/typescript-react-usestate/
+
+

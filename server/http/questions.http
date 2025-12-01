@@ -1,0 +1,24 @@
+@url = http://localhost:8080/api/
+@token = eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJxdWljay1xdWl6Iiwic3ViIjoiam9obmRvZSIsImF1dGhvcml0aWVzIjoiUk9MRV9UZWFjaGVyIiwiZXhwIjoxNzI3NDE2OTI2fQ.fWWB1THijZL9EvL4SQeX_F1wSGxXvpAQb_VvySa7-aI
+
+### Get list of questions (Protected Endpoint)
+GET http://localhost:8080/api/questions
+Authorization: Bearer {{token}}
+
+### Get list of question based on quizid (Protected Endpoint)
+GET http://localhost:8080/api/questions/2
+Authorization: Bearer {{token}}
+
+### Test add question
+POST http://localhost:8080/api/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "quizId": 1,
+    "questionText": "temp"
+}
+
+### Test delete
+DELETE http://localhost:8080/api/questions/4
+Authorization: Bearer {{token}}

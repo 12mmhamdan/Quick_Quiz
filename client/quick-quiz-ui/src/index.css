@@ -1,0 +1,203 @@
+*{
+  box-sizing: border-box;
+  padding:0;
+  margin:0;
+  max-width:100%;
+  background-color: #EFEEE7;
+}
+
+html{
+  font-size:62.5%;
+}
+body{
+  font-size:1.8rem;
+  line-height:1.5;
+  font-family: "Public Sans", sans-serif;
+}
+button, input, .link{
+  font-size:1.8rem !important;
+}
+h1, h2, h3, h4{
+  font-family: "Public Sans", sans-serif;
+  letter-spacing:3px;
+}
+h1{
+  font-size:5rem;
+}
+h2, h3{
+  font-size:3rem;
+}
+section{
+  padding:8% 0;
+}
+
+p.noBackground {
+  background-color: transparent;
+}
+li.noBackground {
+  background-color: rgb(241, 215, 219);
+}
+
+legend {
+  font-size:2.2rem;
+}
+
+header{
+  height:50vh;
+  background-image: url('https://images.pexels.com/photos/4022332/pexels-photo-4022332.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');
+  display:flex;
+  justify-content: center;
+  align-items: center;
+  text-align: left;
+  background-size:cover;
+  background-repeat:no-repeat;
+  color:black;
+}
+
+#imageHeader {
+  font-family: "Public Sans", sans-serif;
+  font-size: 6rem;
+  letter-spacing:3px;
+  background-color: transparent;
+  text-align: left;
+  margin-left: -55rem;
+  width: 30%;
+}
+
+nav{
+  display:flex;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background-color: #2B2C30;
+  justify-content: space-between;
+  align-items: center;
+  margin:2% 0;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+.links{
+  width:55%;
+  display:flex;
+  justify-content: space-around;
+  align-items:right;
+}
+a{
+  color:white;
+  text-decoration: none;
+}
+a:hover{
+  color:white;
+}
+.split {
+  float: right;
+  background-color: #2B2C30;
+  color: white;
+}
+.title{
+  margin-left:2%;
+}
+
+hr {
+  border: 2px solid #2B2C30;
+  margin-top: 3rem;
+}
+
+.btn {
+  background-color: white;
+  color: black;
+}
+.btn:hover{
+  background-color: black;
+  color: white;
+}
+
+.btn-yellow {
+  background-color: yellow; 
+  color: black; 
+  border: none; 
+}
+
+.btn-yellow:hover {
+  background-color: gold; 
+  color: black; 
+}
+
+.loginButton {
+  background-color: blue; 
+  color: white; 
+  border: 2px solid black; 
+  padding: 7px 16px; 
+  font-size: 1.8rem; 
+  border-radius: 5px; 
+  cursor: pointer; 
+  transition: background-color 0.3s ease, transform 0.2s; 
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+}
+
+.loginButton:hover {
+  background-color: darkblue; 
+  transform: translateY(-2px); 
+}
+
+.loginButton:active {
+  background-color: navy; 
+  transform: translateY(0); 
+}
+
+.registerButton {
+  background-color: green; /* Base color */
+  color: white; /* Text color */
+  border: 2px solid black; /* Border color */
+  padding: 10px 20px; /* Padding for better size */
+  font-size: 1.8rem; /* Font size */
+  border-radius: 5px; /* Rounded corners */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: background-color 0.3s ease, transform 0.2s; /* Smooth transition */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.registerButton:hover {
+  background-color: darkgreen; /* Darker green on hover */
+  transform: translateY(-2px); /* Slight lift effect on hover */
+}
+
+.registerButton:active {
+  background-color: forestgreen; /* Even darker on click */
+  transform: translateY(0); /* Reset lift effect */
+}
+
+
+
+/* NotFound.css */
+
+.notfound-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+  background-color: #EFEEE7;
+  color: black;
+  font-family: 'Public Sans', sans-serif;
+}
+
+.notfound-heading {
+  font-size: 10rem;
+  font-family: 'Public Sans', sans-serif;
+}
+
+.notfound-text {
+  font-size: 10rem;
+  margin-bottom: 2rem;
+}
+
+.notfound-link {
+  font-size: 5rem;
+  color: black;
+  text-decoration: underline;
+}
+
+.notfound-link:hover {
+  color: rgb(32, 34, 149); /* Add hover effect as in the global style */
+}

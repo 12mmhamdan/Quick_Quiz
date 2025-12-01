@@ -1,0 +1,6 @@
+@url = http://localhost:8080/api/
+@token = eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJxdWljay1xdWl6Iiwic3ViIjoiZmlyc3RAbGFzdC5jb20iLCJhdXRob3JpdGllcyI6IlN0dWRlbnQiLCJleHAiOjE3MjczNzk0MjV9.v89I457Rlb_BP1i3g3Hi8b-bk7QthSw40eA2qGZswWc
+
+### Get list of quizresults
+GET http://localhost:8080/api/quiz-results/
+Authorization: Bearer {{token}}

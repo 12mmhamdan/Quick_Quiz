@@ -1,0 +1,128 @@
+-- Commit 1:
+1. Deleted unrelated initial files
+2. Completed first draft of AddQuiz
+3. Completed first draft of QuizList
+4. Created first draft of TakeQuiz, BUT still need to implement POST function
+5. Added Delete to QuizList
+6. Completed first draft of EditQuiz
+7. Completed first draft of LoginPage
+8. Created first draft of RegisterPage, BUT still need to finish file
+
+TODO:
+Learn how to implement Security
+Repalce all PLACEHOLDER_URL with URLs from completed Controller
+Finish RegisterPage
+Add POST function to TakeQuiz
+
+-- Commit 2:
+1. Completed first draft of RegisterPage
+2. Implemented SessionStorage in LoginPage to save the Token and the Username of the logged in user
+3. Added TypeScript tsconfig.json file
+4. Added Bootstrap to index.html
+5. Changed some CSS styles for the home page
+6. Setup Links for all created TS pages
+
+TODO:
+Get if user is an admin or not and set in in a Session variable
+Fix bug for handleChange in TS
+Look into blank default fields for Create Quiz
+
+-- Commit 3:
+1. Finally figured out handleChange, had to add index signature [key: string]: number | string,
+Thank you Dimitri Pavlutin https://dmitripavlutin.com/typescript-index-signatures/
+Typescript playground: https://www.typescriptlang.org/play/?#code/JYOwLgpgTgZghgYwgAgIoFUCSAtA+gMQHkAlAWV0IAUAVTQgOQGVkBvAWAChlvkBtAawgBPAFzIAzmCigA5gF0xIAK4BbAEbRkAHwlTZAGk49kkRAAtomACaLVGqIa49TCC1HpwVEMZOkgZjsbK6tCEMKhKEJLAAPYg4rYhDkY8wfZhhAAOYLHxifaBzjGZwAg+ev6F3JlQMSrZ5X4ynAC+nJwANhBgyFYQ8EodYFk5cQloWHhEZBQ0dEzIALysKdwubtZiAIxVJhDm0B5eYgDkJ7tpoeGR0WNiAAwXdlcjueOPqybFpafnnzV1BrIM6tdocBBjGJdAB0HRiMgAFH0BkNXmMAJQAbjBMCUIAQoxAyFccH8EAAQkJMCA+gAPBGgADSwkaBmQoAAanAOqz-NpkJcoOiVk5uMi4INhtk3rwmcI5Et2SAuR1sRw2hxOCSyZTqXSESd1odPBBzsDtTIIFYjqasVqzKTLbqaRB6SdBWEIlFCeIzVt7nbNeDITC4YjxZK0fFA0A
+2. Added to LoginPage and AddQuiz, need to update the rest
+3. Fixed handleChange for RegisterPage, TakePage
+4. Added 'required' to inputs for EditQuiz, AddQuiz
+5. EditQuiz needs big adjustments to return HTML first before fixing handleChange
+6. Passed check-in! We're on track
+7. Login and register: change type from text to password
+8. Changed id field to {index.toString(10)} in EditQuiz
+9. Changed handleChange function in EditQuiz, it WILL need debugging I can tell
+10. Editing QuizResultsList, need to properly handle resetting the score (line 95)
+
+TODO:
+Look into blank default fields for Create Quiz
+Just Home and Login when use is not signed in
+
+-- Commit 4:
+1. Updated RegisterPage url
+2. Updated LoginPage url
+3. Updated setSessionStorage to get roles from the token
+4. Added ipsums to home page
+5. Figured out how to implement OpenAI response as JSON
+6. Implemented Authorization to:
+AddQuiz,
+EditQuiz,
+QuizList,
+QuizResultsList,
+7. Implemented addQuizResult and Authorization to TakeQuiz. Add Errors field to TakeQuiz HTML component.
+8. Added conditional display for:
+Navbar
+QuizList
+QuizResultsList
+
+TODO:
+Send TakeQuiz to Server
+Implement AI API (Tyler's job)
+Change all URLs
+
+-- Commit 5:
+1. Implemented OpenAI call on my end
+2. Adding security checks to render the pages
+AddQuiz: if not teacher, don't render
+TakeQuiz: if not user, don't render
+EditQuiz: if not teacher, don't render
+QuizList: change render if teacher, user, or not logged in
+
+3. Implemented Secret Key page
+4. Implemented signOut on the Navbar
+5. Implemented conditional rendering for the Navbar
+6. Implemented secret key insertion for the Teacher
+
+TODO: 
+Implement security for Secret API Key if we have the time
+IMPORTANT!!!: Add new bar for Secret Key insertion
+Update visuals for Homepage and 404 Page
+
+-- Commit 6:
+
+
+NOTES:
+Ask Brit about the 'You shouldn't be here!'
+
+-- Commit 7:
+1. Redid Home page and Secret Key page updates
+
+-- Commit 8?:
+1. Fixed AddQuiz, it was an issue with TeacherId
+2. Implemented Delete for QuizList
+3. Moving on to TakeQuiz probably
+
+-- Commit 9:
+1. Adjusted links for QuizList for Teacher and Student
+2. Adjusted Role in EditQuiz
+3. Add authorization in EditQuiz
+4. Almost finished with AddQuiz
+
+-- Commit 10:
+9.26
+Code cleanup - remove comments + unused code
+
+TODO:
+Test that the project works after removing all the extra code and comments
+
+-- Commit 11:
+Made some changes to the frontend
+Added blank line to the TakeQuiz code
+
+
+
+///
+https://stackoverflow.com/questions/57086672/element-implicitly-has-an-any-type-because-expression-of-type-string-cant-b
+
+Refer to Module 8 Tuesday lecture for a better CSS example
+
+https://www.typescriptlang.org/play/?#code/JYOwLgpgTgZghgYwgAgLIE8CS5rycgbwFgAoZc5ABygHtKBGALmQGcwpQBzAblIqtqUATMxABXALYAjaLzIUA9AuQ0wAC2gC60MMAgtSAX1KkENEG2QT0AeSkArCAjDMM2SLEQoAvIT4VqOiZkACIANzgAGzEIehCAGn9yQOFmeiEAZkT5ciUVdU0UnT0DEkM5U3MWGkiIADpImk4AChCJCHUaABNkYOAPOEgVMM0IcA59EIBKUhgaKGRmswswZABtAGsIdHjkCOiIAF0VGGQ7R2c6sfYS5utzpzApqb8c5GXq2oam5q2dvaiMSmcmMJEqFhq9UaLTaHTU3WQImQ-WggxQNBGCz+LGms3miw+qz+JzODkedWxd1sZOcLzgLGQAEEoFA4OgADx-GinNw4TxIAB8L2Ib0JAIOyF89xpYE220O3GQeQAcjQAO7IAAq6EoEAAyggOJQiSB1QzicAGXBkFyeVg+XgIEl3lVId8Wn9dvsgSDSEA
+
+https://stackoverflow.com/questions/10334267/javascript-get-object-key-name

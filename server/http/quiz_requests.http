@@ -1,0 +1,170 @@
+@token = eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJxdWljay1xdWl6Iiwic3ViIjoiam9obmRvZSIsImF1dGhvcml0aWVzIjoiUk9MRV9UZWFjaGVyIiwiZXhwIjoxNzI3NDA4MjY3fQ.gflPN8AyhEBfgRS-lMwfvWUkeEv-azFtNdw3YXMj_xM
+
+### Get list of quizzes (Protected Endpoint)
+GET http://localhost:8080/api/quizzes
+Authorization: Bearer {{token}}
+
+###
+POST http://localhost:8080/api/quizzes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "teacherId": 2,
+  "title": "Science Quiz",
+  "description": "A simple science quiz for beginners.",
+  "topic": "Science",
+  "numberOfQuestions": 10,
+  "numberOfOptions": 4,
+  "prompt": "Answer the following science questions",
+  "quizJSON": "{ \"questions\": [ { \"question\": \"What is the boiling point of water?\", \"options\": [\"100°C\", \"0°C\", \"50°C\", \"200°C\"], \"correctOption\": 0 } ] }"
+}
+
+
+
+### Get Quiz By ID
+GET http://localhost:8080/api/quizzes/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJxdWljay1xdWl6Iiwic3ViIjoiam9obmRvZSIsImF1dGhvcml0aWVzIjoiVGVhY2hlciIsImV4cCI6MTcyNzM3ODU5NX0.KPTf09cyRNIwqurkskOEL9b8-aoGK3LGMxfZ1Cl88Tw
+
+
+###
+
+
+
+### Update Quiz
+PUT http://localhost:8080/api/quizzes/1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJxdWljay1xdWl6Iiwic3ViIjoiam9obmRvZSIsImF1dGhvcml0aWVzIjoiUk9MRV9UZWFjaGVyIiwiZXhwIjoxNzI3MjEwOTk4fQ.OxoTqiSD2RcqDIbKwkydk5UmJzN4vmQYM-17XJoVnKk
+
+
+{
+  "title": "Science Quiz",
+  "description": "A simple science quiz for beginners.",
+  "topic": "Science",
+  "number_of_questions": 10,
+  "number_of_options": 4,
+  "prompt": "Answer the following science questions",
+  "quiz_json": "{ \"questions\": [ { \"question\": \"What is the boiling point of water?\", \"options\": [\"100°C\", \"0°C\", \"50°C\", \"200°C\"], \"correctOption\": 0 } ] }"
+}
+
+###
+
+### Delete Quiz
+DELETE http://localhost:8080/api/quizzes/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJxdWljay1xdWl6Iiwic3ViIjoiam9obmphY29iIiwiYXV0aG9yaXRpZXMiOiJST0xFX1N0dWRlbnQiLCJleHAiOjE3MjcyNzk1Mzd9.gHJcYgspYzkYKppxD8c9xk8DX1D2Jzs2AlnpwqlWVVU
+
+### everything works except for creating a quiz
+
+
+### TESTING:
+POST http://localhost:8080/api/quizzes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "teacherId": 2,
+  "title": "delete this one",
+  "description": "delete this one",
+  "topic": "pizza",
+  "numberOfQuestions": 4,
+  "numberOfOptions": 4,
+  "prompt": "This is a quiz about pizza.",
+  "quizJSON": "{\"questions\":[{\"question\":\"What is the main ingredient in traditional pizza dough?\",\"options\":[\"Rice\",\"Corn\",\"Wheat\",\"Oats\"],\"correct_answer\":\"Wheat\"},{\"question\":\"Which of the following is a popular type of pizza originating from Chicago?\",\"options\":[\"Neapolitan\",\"New York Style\",\"Chicago Deep Dish\",\"Sicilian\"],\"correct_answer\":\"Chicago Deep Dish\"},{\"question\":\"What is the most popular pizza topping in the United States?\",\"options\":[\"Mushrooms\",\"Pepperoni\",\"Olives\",\"Pineapple\"],\"correct_answer\":\"Pepperoni\"},{\"question\":\"Which cheese is traditionally used on pizzas?\",\"options\":[\"Cheddar\",\"Gouda\",\"Mozzarella\",\"Feta\"],\"correct_answer\":\"Mozzarella\"}]}"
+
+}
+
+### TESTING 2:
+POST http://localhost:8080/api/quizzes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "teacherId": 2,
+  "title": "title",
+  "description": "desc",
+  "topic": "topic",
+  "numberOfQuestions": 4,
+  "numberOfOptions": 4,
+  "prompt": "prompt",
+  "quizJSON": "normal string"
+
+}
+
+  # "quizJSON": "{\"questions\":[{\"question\":\"What is the boiling point of water?\",\"options\":[\"100°C\",\"0°C\",\"50°C\",\"200°C\"], \"correctOption\": 0 } ] }",
+
+  # This works:
+  # "quizJSON": "{\"questions\":[{\"question\":\"What is the main ingredient in traditional pizza dough?\",\"options\":[\"Flour\",\"Rice\",\"Corn\",\"Potato\"],\"correct_answer\":\"Flour\"},{\"question\":\"Which type of cheese is commonly used on pizzas?\",\"options\":[\"Cheddar\",\"Feta\",\"Mozzarella\",\"Brie\"],\"correct_answer\":\"Mozzarella\"},{\"question\":\"What is the Italian term for a pizza with tomato sauce and cheese?\",\"options\":[\"Margherita\",\"Pepperoni\",\"Quattro Stagioni\",\"Funghi\"],\"correct_answer\":\"Margherita\"},{\"question\":\"Which popular topping is made from fermented sausage?\",\"options\":[\"Bacon\",\"Pepperoni\",\"Chicken\",\"Mushrooms\"],\"correct_answer\":\"Pepperoni\"}]}"
+
+### TESTING:
+GET http://localhost:8080/api/teachers
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### TESTING:
+GET http://localhost:8080/api/teachers/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### TESTING:
+GET http://localhost:8080/api/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### Test getting the data:
+GET http://localhost:8080/api/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### Test getting all options:
+GET http://localhost:8080/api/options
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+
+### Test setting:
+POST http://localhost:8080/api/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+{
+  "teacherId": 2,
+  "title": "title",
+  "description": "desc",
+  "topic": "topic",
+  "numberOfQuestions": 4,
+  "numberOfOptions": 4,
+  "prompt": "prompt",
+  "quizJSON": "normal string"
+
+}
+
+### Test setting:
+POST http://localhost:8080/api/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "quizId": 1,
+  "questionText": "temp"
+}
+
+### Test add question:
+POST http://localhost:8080/api/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "quizId": 5,
+  "questionText": "temp2"
+}
+
+### Test option setting
+POST http://localhost:8080/api/options
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionId": 5,
+  "optionText": "temp option",
+  "isCorrect": "false"
+
+}

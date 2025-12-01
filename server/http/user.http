@@ -1,0 +1,47 @@
+### Register a new teacher user
+POST http://localhost:8080/api/user/register
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "username": "johndoe",
+  "password": "StrongPassword123!",
+  "roles": ["Teacher"]
+}
+
+### Register a new student user
+POST http://localhost:8080/api/user/register
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Jacob",
+  "username": "johnjacob",
+  "password": "Password123!",
+  "roles": ["Student"]
+}
+
+
+### Authenticate and get a JWT token
+### Teacher
+POST http://localhost:8080/api/user/authenticate
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "password": "StrongPassword123!"
+}
+
+### Authenticate and get a JWT token
+### Student
+POST http://localhost:8080/api/user/authenticate
+Content-Type: application/json
+
+{
+  "username": "johnjacob",
+  "password": "Password123!"
+}
+
+### Get
+GET http://localhost:8080/api/user/johndoe
