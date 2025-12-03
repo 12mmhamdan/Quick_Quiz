@@ -22,7 +22,7 @@ let defaultLogin: LOGIN_OPTIONS = {
     lastName: '',
     username: '',
     password: '',
-    roles: ["Student"]
+    roles: ["Student"]   // default role
 }
 
 function RegisterPage() {
@@ -31,7 +31,6 @@ function RegisterPage() {
 
     const url: string = 'https://quick-quiz-257248753584.us-central1.run.app/api/user/register';
     const navigate: Function = useNavigate()
-
 
     function handleSubmit(input: React.FormEvent<HTMLFormElement>) {
         input.preventDefault();
@@ -44,38 +43,40 @@ function RegisterPage() {
         setLoginInfo(newLoginInfo);
     }
 
-    //Attempt to add new users
+    function handleRoleChange(input: React.ChangeEvent<HTMLSelectElement>) {
+        const role = input.currentTarget.value; // "Student" or "Teacher"
+        const newLoginInfo: LOGIN_OPTIONS = { ...loginInfo, roles: [role] };
+        setLoginInfo(newLoginInfo);
+    }
+
+    // Attempt to add the new user:
     function addNewUser() {
-    const initHeaders: Headers = new Headers();
-    initHeaders.append('Content-Type', 'application/json');
+        const initHeaders: Headers = new Headers();
+        initHeaders.append('Content-Type', 'application/json');
+        const init: INIT = {
+            method: 'POST',
+            headers: initHeaders,
+            body: JSON.stringify(loginInfo)
+        }
 
-    const init: INIT = {
-        method: 'POST',
-        headers: initHeaders,
-        body: JSON.stringify(loginInfo)
-    };
-
-    fetch(url, init)
-        .then(response => {
-            if (response.status === 201) {
-                return null;
-            } else {
-                return response.json();
-            }
-        })
-        .then(data => {
-            if (!data) {
-                window.alert('Success! Please log in with your new account.');
-                navigate('/login');
-            } else {
-                setErrors(data);
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            setErrors(["Could not reach server. Please try again later."]);
-        });
-}
+        fetch(url, init)
+            .then(response => {
+                if (response.status === 201) {    // Response code from the Agent Security example
+                    return null;
+                }  else {
+                    return response.json();
+                }
+            })
+            .then(data => {
+                if (!data) {
+                    window.alert('Success! Please log in with your new account.')
+                    navigate('/login');
+                } else {
+                    setErrors(data);
+                }
+            })
+            .catch(console.log);
+    }
 
     return (<>
         <section className="container">
@@ -135,7 +136,23 @@ function RegisterPage() {
                         onChange={handleChange}
                     />
                 </fieldset>
-                <div>
+
+                {/* New role selector */}
+                <fieldset className="form-group">
+                    <label htmlFor="role">Account Type</label>
+                    <select
+                        id="role"
+                        name="role"
+                        className="form-control"
+                        value={loginInfo.roles[0]}   // "Student" or "Teacher"
+                        onChange={handleRoleChange}
+                    >
+                        <option value="Student">Student</option>
+                        <option value="Teacher">Teacher</option>
+                    </select>
+                </fieldset>
+
+                <div className="mt-3">
                     <button className="btn btn-outline-success mr-4" type="submit">Sign Up</button>
                     <Link className="link btn btn-outline-danger" to={'/login'} type="button">Cancel</Link>
                 </div>
@@ -143,7 +160,6 @@ function RegisterPage() {
         </section>
 
     </>)
-
 }
 
 export default RegisterPage;
