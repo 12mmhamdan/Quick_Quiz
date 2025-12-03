@@ -6,13 +6,13 @@ function Navbar(){
 
     function signOut() {
         if (window.confirm("Do you want to log out?")) {
-            sessionStorage.clear();
+            localStorage.clear();
             navigate("/");
             window.location.reload();
         }
     }
 
-    if (sessionStorage.getItem("ROLE_Teacher") === "VALID") {
+    if (localStorage.getItem("ROLE_Teacher") === "VALID") {
         return(<>
             <nav>
                 <Link to={'/'}>Home</Link>
@@ -23,7 +23,7 @@ function Navbar(){
                 <Link to={''} onClick={signOut}>Sign Out</Link>
             </nav>
         </>);
-    } else if (sessionStorage.getItem("ROLE_Student") === "VALID") {
+    } else if (localStorage.getItem("ROLE_Student") === "VALID") {
         return(<>
             <nav>
                 <Link to={'/'}>Home</Link>

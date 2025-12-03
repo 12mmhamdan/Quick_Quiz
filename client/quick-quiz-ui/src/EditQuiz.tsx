@@ -41,7 +41,7 @@ function EditQuiz() {
         if (id) {
             fetch(`${url}/${id}`, {
                 headers: {
-                    "Authorization": "Bearer " + sessionStorage.getItem('token')
+                    "Authorization": "Bearer " + localStorage.getItem('token')
                 }
             })
                 .then(response => {
@@ -101,7 +101,7 @@ function EditQuiz() {
 
     // Update
     function updateQuestions() {
-        const token: string | undefined = sessionStorage.getItem('token') || "DEFAULT";
+        const token: string | undefined = localStorage.getItem('token') || "DEFAULT";
         const initHeaders: Headers = new Headers();
         initHeaders.append('Content-Type', 'application/json');
         initHeaders.append('Authorization', "Bearer " + token)
@@ -176,7 +176,7 @@ function EditQuiz() {
     */
 
     // This URL is open, so first we should check if the user's supposed to be here.
-    if (sessionStorage.getItem("ROLE_Teacher") === null) {
+    if (localStorage.getItem("ROLE_Teacher") === null) {
         return (<div className="notfound-container">
             <h1 className="notfound-heading">403</h1>
             <p className="notfound-text">You shouldn't be here!</p>

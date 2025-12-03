@@ -25,7 +25,7 @@ function QuizResultsList() {
     useEffect(() => {
         fetch(url, {
             headers: {
-                "Authorization": "Bearer " + sessionStorage.getItem('token')
+                "Authorization": "Bearer " + localStorage.getItem('token')
             }
         })
             .then(response => {
@@ -49,7 +49,7 @@ function QuizResultsList() {
         if (quizResult) {
             quizResult.score = -1;
             if (window.confirm(`Reset ${quizResult.username}'s score for Quiz ${quizResult.title}?`)) {
-                const token: string | undefined = sessionStorage.getItem
+                const token: string | undefined = localStorage.getItem
                     ('token') || "DEFAULT";
                 const initHeaders: Headers = new Headers();
                 initHeaders.append('Authorization', token);
@@ -93,7 +93,7 @@ function QuizResultsList() {
     }
     */
 
-    if (sessionStorage.getItem("Teacher") === "VALID") {
+    if (localStorage.getItem("Teacher") === "VALID") {
         return (<>
             <section className="container">
                 <h2 className="mb-4">Quiz Grades</h2>

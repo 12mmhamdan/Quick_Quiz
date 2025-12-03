@@ -2,12 +2,12 @@ import React from "react";
 
 function Home() {
 
-    let getName: string = sessionStorage.getItem('username') || "DEFAULT";
+    let getName: string = localStorage.getItem('username') || "DEFAULT";
     let displayName: string;
     if (getName === 'DEFAULT') {
         displayName = '';
     } else {
-        displayName = ', ' + sessionStorage.getItem('username');
+        displayName = ', ' + localStorage.getItem('username');
     }
 
 

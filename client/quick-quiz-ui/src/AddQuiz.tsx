@@ -161,7 +161,7 @@ async function getOpenAiJSONResponse(
   numberOfOptions: number
 ): Promise<string> {
   const openai: OpenAI = new OpenAI({
-    apiKey: sessionStorage.getItem("secretKey") || "NONE",
+    apiKey: localStorage.getItem("secretKey") || "NONE",
     dangerouslyAllowBrowser: true,
   });
 
@@ -257,7 +257,7 @@ function AddQuiz() {
 
           // Send the data to the server:
           const token: string | undefined =
-            sessionStorage.getItem("token") || "DEFAULT";
+            localStorage.getItem("token") || "DEFAULT";
           const initHeaders: Headers = new Headers();
 
           initHeaders.append("Content-Type", "application/json");
@@ -398,7 +398,7 @@ function AddQuiz() {
 
       // QUESTION + OPTION
       const token: string | undefined =
-        sessionStorage.getItem("token") || "DEFAULT";
+        localStorage.getItem("token") || "DEFAULT";
       const initHeaders: Headers = new Headers();
 
       initHeaders.append("Content-Type", "application/json");
@@ -527,7 +527,7 @@ The quiz topic is: ${input.topic}.
   }
 
   // Conditional Rendering:
-  if (sessionStorage.getItem("ROLE_Teacher") === null) {
+  if (localStorage.getItem("ROLE_Teacher") === null) {
     return (
       <div className="notfound-container">
         <h1 className="notfound-heading">403</h1>
@@ -537,7 +537,7 @@ The quiz topic is: ${input.topic}.
         </a>
       </div>
     );
-  } else if (sessionStorage.getItem("secretKey") === null) {
+  } else if (localStorage.getItem("secretKey") === null) {
     return (
       <>
         <div className="container">

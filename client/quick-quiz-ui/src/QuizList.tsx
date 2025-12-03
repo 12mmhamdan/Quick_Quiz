@@ -42,7 +42,7 @@ function QuizList() {
 
     const initHeaders: Headers = new Headers();
     initHeaders.append('Content-Type', 'application/json');
-    initHeaders.append('Authorization', 'Bearer ' + sessionStorage.getItem('token'));
+    initHeaders.append('Authorization', 'Bearer ' + localStorage.getItem('token'));
 
 
     useEffect(() => {
@@ -72,7 +72,7 @@ function QuizList() {
         const quiz = quizzes.find(q => q.quizId === quizId);
         if (quiz) {
             if (window.confirm(`Delete Quiz: ${quiz.title}?`)) {
-                const token: string | undefined = sessionStorage.getItem
+                const token: string | undefined = localStorage.getItem
                     ('token') || "DEFAULT";
                 const initHeaders: Headers = new Headers();
                 initHeaders.append('Authorization', 'Bearer ' + token);
@@ -98,7 +98,7 @@ function QuizList() {
 
     // &nbsp; for the buttons
     // Render three versions: Teacher, Student, not logged in
-    if (sessionStorage.getItem("ROLE_Teacher") === "VALID") {
+    if (localStorage.getItem("ROLE_Teacher") === "VALID") {
         return (<>
             <section className="container">
                 <h2 className="mb-4">Available Quizzes:</h2>
@@ -130,7 +130,7 @@ function QuizList() {
                 </table>
             </section>
         </>);
-    } else if (sessionStorage.getItem("ROLE_Student") === "VALID") {
+    } else if (localStorage.getItem("ROLE_Student") === "VALID") {
         return (<>
             <section className="container">
                 <h2 className="mb-4">Available Quizzes:</h2>

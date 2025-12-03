@@ -33,10 +33,10 @@ function TeacherInsertSecretKey() {
     // Helper function:
     function setSecretKeyInSessionStorage(input: string) {
         // Set the Teacher's OpenAI Secret Key
-        sessionStorage.setItem('secretKey', input);
+        localStorage.setItem('secretKey', input);
     }
 
-    if (sessionStorage.getItem("ROLE_Teacher") === null) {
+    if (localStorage.getItem("ROLE_Teacher") === null) {
         return (<div className="notfound-container">
             <h1 className="notfound-heading">403</h1>
             <p className="notfound-text">You shouldn't be here!</p>
@@ -53,7 +53,7 @@ function TeacherInsertSecretKey() {
             <p>Afterward, generate a new Secret Key:</p>
             <a className="btn btn-outline-primary btn-lg  mb-4" href="https://platform.openai.com/api-keys">Get New API Key</a>
             <p>Your stored scecret key is:</p>
-            <p>{"(Hiding for demonstration: " + sessionStorage.getItem('secretKey')?.substring(0, 20) + 
+            <p>{"(Hiding for demonstration: " + localStorage.getItem('secretKey')?.substring(0, 20) + 
             " ...)" || "None"}</p>
             <form onSubmit={handleSubmit}>
                 <fieldset className="form-group">

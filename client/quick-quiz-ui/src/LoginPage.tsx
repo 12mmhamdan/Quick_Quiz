@@ -88,7 +88,7 @@ function LoginPage() {
         console.log(json.authorities);  // Not using TypeScript here, unable to get 'authorities' otherwise
         
         // Only ROLE_Teacher or ROLE_Student
-        sessionStorage.setItem(json.authorities, 'VALID');
+        localStorage.setItem(json.authorities, 'VALID');
 
         
         // https://developer.mozilla.org/en-US/docs/Web/API/Storage/getItem
@@ -97,8 +97,8 @@ function LoginPage() {
         // If the key does not exist, return `null`.
 
         // https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage
-        sessionStorage.setItem('token', token);
-        sessionStorage.setItem('username', loginInfo.username);
+        localStorage.setItem('token', token);
+        localStorage.setItem('username', loginInfo.username);
     }
 
     return (<>

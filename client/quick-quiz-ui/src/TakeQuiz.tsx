@@ -75,7 +75,7 @@ function TakeQuiz() {
     if (id) {
       fetch(`https://quick-quiz-257248753584.us-central1.run.app/api/quizzes/${id}`, {
         headers: {
-          Authorization: "Bearer " + sessionStorage.getItem("token"),
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       })
         .then((response) => {
@@ -101,7 +101,7 @@ function TakeQuiz() {
         .catch((error) => console.log("Error fetching quiz data:", error));
       fetch(`https://quick-quiz-257248753584.us-central1.run.app/api/questions/${id}`, {
         headers: {
-          Authorization: "Bearer " + sessionStorage.getItem("token"),
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       })
         .then((response) => {
@@ -120,9 +120,9 @@ function TakeQuiz() {
         .catch((error) => console.log("Error fetching question data:", error));
 
       // fetch to get userId
-      fetch(`https://quick-quiz-257248753584.us-central1.run.app/api/user/${sessionStorage.getItem('username')}`, {
+      fetch(`https://quick-quiz-257248753584.us-central1.run.app/api/user/${localStorage.getItem('username')}`, {
         headers: {
-          Authorization: "Bearer " + sessionStorage.getItem("token"),
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       })
         .then((response) => {
@@ -165,7 +165,7 @@ function TakeQuiz() {
 
 
   function addQuizResult() {
-    const token = sessionStorage.getItem("token") || "DEFAULT";
+    const token = localStorage.getItem("token") || "DEFAULT";
     const initHeaders = new Headers();
     initHeaders.append("Content-Type", "application/json");
     initHeaders.append("Authorization", "Bearer " + token);
@@ -180,7 +180,7 @@ function TakeQuiz() {
         questionId: Number(questionId),
         optionText: answer,
       })),
-      username: sessionStorage.getItem('username')
+      username: localStorage.getItem('username')
     };
 
     const init: INIT = {
