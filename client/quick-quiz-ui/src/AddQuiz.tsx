@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
 import OpenAI from "openai";
-import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 interface INIT {
@@ -27,7 +26,7 @@ const defaultQuizOptions: QUIZ_FORM_OPTIONS = {
     numberOfQuestions: 2,
     numberOfOptions: 2,
     prompt: "",
-    quizJSON: "",
+    quizJSON: ""
 };
 
 interface QUESTION_OPTIONS {
@@ -38,7 +37,7 @@ interface QUESTION_OPTIONS {
 
 const defaultQuestionOptions: QUESTION_OPTIONS = {
     quizId: -1,
-    questionText: "",
+    questionText: ""
 };
 
 interface OPTION_OPTIONS {
@@ -51,209 +50,133 @@ interface OPTION_OPTIONS {
 const defaultOptionOptions: OPTION_OPTIONS = {
     questionId: -1,
     optionText: "",
-    isCorrect: false,
+    isCorrect: false
 };
 
-function AddQuiz() {
-    const [quizForm, setQuizForm] = useState<QUIZ_FORM_OPTIONS>(defaultQuizOptions);
+function normalizeQuizJson(rawJson: string, numberOfOptions: number): string {
+    type Question = {
+        question: string;
+        options?: any;
+        correct_answer: any;
+        [key: string]: any;
+    };
 
-    const [quizId, setQuizId] = useState<number>(-1);
-    const [questionId, setQuestionId] = useState<number>(9999); // not really used, but leaving as-is
-    const [errors, setErrors] = useState<Array<string>>([]);
+    type QuizShape = {
+        questions: Question[];
+        [key: string]: any;
+    };
 
-    const url = "https://quick-quiz-257248753584.us-central1.run.app/api/quizzes";
-    const navigate = useNavigate();
+    // Clean the raw JSON text a bit
+    let cleaned = rawJson.trim();
+    cleaned = cleaned.replace(/^```json/i, "").replace(/```$/i, "").trim();
 
-    function handleSubmit(input: React.FormEvent<HTMLFormElement>) {
-        input.preventDefault();
-        addQuiz();
+    let parsed: QuizShape;
+
+    try {
+        parsed = JSON.parse(cleaned);
+    } catch (e) {
+        console.error("Failed to parse OpenAI JSON in normalizeQuizJson:", e);
+        console.error("Cleaned content that failed to parse:", cleaned);
+        throw e; // Let caller decide what to do
     }
 
-    function addQuiz() {
-        // Simple prompt for metadata
-        quizForm.prompt = `This is a quiz about ${quizForm.topic}.`;
+    if (!Array.isArray(parsed.questions)) {
+        console.error("Parsed JSON has no 'questions' array.");
+        throw new Error("Quiz JSON missing 'questions' array.");
+    }
 
-        const numOptions = Number(quizForm.numberOfOptions);
-        const numQuestions = Number(quizForm.numberOfQuestions);
+    parsed.questions = parsed.questions.map((q, index) => {
+        if (!Array.isArray(q.options)) {
+            q.options = [];
+        }
 
-        getOpenAiJSONResponse(
-            createJSONPrompt(quizForm),
-            numOptions,
-            numQuestions,
-            quizForm.topic
-        ).then((response) => {
-            if (response === "CRITICAL_ERROR") {
-                window.alert("Something has gone wrong with response generation. Please try again.");
-                return;
-            } else {
-                quizForm.quizJSON = response;
+        // Ensure options are clean strings
+        q.options = q.options
+            .filter((o: any) => typeof o === "string")
+            .map((o: string) => o.trim())
+            .filter((o: string) => o.length > 0);
 
-                const payload = {
-                    title: quizForm.title,
-                    description: quizForm.description,
-                    topic: quizForm.topic,
-                    numberOfQuestions: numQuestions,
-                    numberOfOptions: numOptions,
-                    prompt: quizForm.prompt,
-                    quizJSON: quizForm.quizJSON,
-                };
+        // Ensure correct_answer exists and is a string
+        if (typeof q.correct_answer !== "string") {
+            q.correct_answer = "Correct answer not specified";
+        }
+        q.correct_answer = q.correct_answer.trim();
 
-                const token: string = localStorage.getItem("token") || "DEFAULT";
-                const initHeaders = new Headers();
+        // If correct_answer isn't in options, inject it at front
+        if (!q.options.includes(q.correct_answer)) {
+            q.options.unshift(q.correct_answer);
+        }
 
-                initHeaders.append("Content-Type", "application/json");
-                initHeaders.append("Authorization", "Bearer " + token);
-
-                console.log("Quiz payload being POSTed:", JSON.stringify(payload));
-
-                const init: INIT = {
-                    method: "POST",
-                    headers: initHeaders,
-                    body: JSON.stringify(payload),
-                };
-
-                fetch(url, init)
-                    .then((response) => {
-                        if (response.status === 201 || response.status === 400) {
-                            return response.json();
-                        } else {
-                            return Promise.reject(`Unexpected Status Code: ${response.status}`);
-                        }
-                    })
-                    .then((data) => {
-                        if (data.quizId) {
-                            setQuizId(data.quizId);
-
-                            addQuestionsAndOptions(data.quizJSON, data.quizId);
-
-                            window.alert("Quiz created! Thank you for your patience.");
-                            navigate("/quizzes");
-                        } else {
-                            setErrors(data);
-                        }
-                    })
-                    .catch((err) => {
-                        console.error("Error creating quiz:", err);
-                    });
-            }
+        // Remove duplicate options while preserving order
+        const seen = new Set<string>();
+        q.options = q.options.filter((o: string) => {
+            if (seen.has(o)) return false;
+            seen.add(o);
+            return true;
         });
-    }
 
-    function addQuestionsAndOptions(inJSON: string, quizId: number) {
-        let jsonData: any;
+        // Truncate if too many
+        if (q.options.length > numberOfOptions) {
+            q.options = q.options.slice(0, numberOfOptions);
+        }
+
+        // Pad with placeholder distractors if too few
+        while (q.options.length < numberOfOptions) {
+            const label = String.fromCharCode(65 + q.options.length); // A, B, C...
+            q.options.push(`Placeholder option ${label} for question ${index + 1}`);
+        }
+
+        // Make sure correct_answer is still included
+        if (!q.options.includes(q.correct_answer)) {
+            q.options[0] = q.correct_answer;
+        }
+
+        return q;
+    });
+
+    return JSON.stringify(parsed);
+}
+
+async function getOpenAiJSONResponse(
+    input: string,
+    numberOfOptions: number
+): Promise<string> {
+    const secretKey = localStorage.getItem("secretKey") || "NONE";
+
+    const openai: OpenAI = new OpenAI({
+        apiKey: secretKey,
+        dangerouslyAllowBrowser: true
+    });
+
+    const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+            { role: "system", content: "You are a helpful assistant." },
+            { role: "user", content: input }
+        ]
+    });
+
+    const content = completion.choices[0].message.content;
+
+    if (content !== null) {
+        let cleaned = content.replace("```json", "").replace("```", "");
+
         try {
-            jsonData = JSON.parse(inJSON);
+            const normalized = normalizeQuizJson(cleaned, numberOfOptions);
+            console.log("Normalized quiz JSON:", JSON.parse(normalized));
+            return normalized;
         } catch (e) {
-            console.error("Failed to parse quizJSON in addQuestionsAndOptions:", e);
-            console.error("Offending JSON:", inJSON);
-            return;
-        }
-
-        if (!Array.isArray(jsonData.questions)) {
-            console.error("No 'questions' array in quiz JSON.");
-            return;
-        }
-
-        for (let i = 0; i < jsonData.questions.length; i++) {
-            const newQuestionForm: QUESTION_OPTIONS = { ...defaultQuestionOptions };
-            newQuestionForm.quizId = quizId;
-            newQuestionForm.questionText = jsonData.questions[i].question;
-
-            const options = jsonData.questions[i].options;
-            if (!Array.isArray(options) || options.length === 0) {
-                console.warn(`Question ${i + 1} has no options after normalization.`);
-                continue;
-            }
-
-            const correctAnswer: string = jsonData.questions[i].correct_answer;
-
-            const token: string = localStorage.getItem("token") || "DEFAULT";
-            const initHeaders = new Headers();
-
-            initHeaders.append("Content-Type", "application/json");
-            initHeaders.append("Authorization", "Bearer " + token);
-
-            const initQuestion: INIT = {
-                method: "POST",
-                headers: initHeaders,
-                body: JSON.stringify(newQuestionForm),
-            };
-
-            fetch(
-                "https://quick-quiz-257248753584.us-central1.run.app/api/questions",
-                initQuestion
-            )
-                .then((response) => {
-                    if (response.status === 201 || response.status === 400) {
-                        return response.json();
-                    } else {
-                        return Promise.reject(`Unexpected Status Code: ${response.status}`);
-                    }
-                })
-                .then((data) => {
-                    console.log(
-                        "Added question with quiz ID " +
-                            newQuestionForm.quizId +
-                            " and text " +
-                            newQuestionForm.questionText
-                    );
-                    if (data.questionId) {
-                        for (let j = 0; j < options.length; j++) {
-                            const newOptionForm: OPTION_OPTIONS = { ...defaultOptionOptions };
-
-                            newOptionForm.questionId = data.questionId;
-                            newOptionForm.optionText = options[j];
-                            newOptionForm.isCorrect = options[j] === correctAnswer;
-
-                            const initOp: INIT = {
-                                method: "POST",
-                                headers: initHeaders,
-                                body: JSON.stringify(newOptionForm),
-                            };
-
-                            fetch(
-                                "https://quick-quiz-257248753584.us-central1.run.app/api/options",
-                                initOp
-                            )
-                                .then((response) => {
-                                    if (response.status === 201 || response.status === 400) {
-                                        return response.json();
-                                    } else {
-                                        return Promise.reject(
-                                            `Unexpected Status Code: ${response.status}`
-                                        );
-                                    }
-                                })
-                                .then((data) => {
-                                    if (!data.optionId) {
-                                        setErrors(data);
-                                    }
-                                })
-                                .catch((err) => console.error("Error adding option:", err));
-                        }
-                    } else {
-                        setErrors(data);
-                    }
-                })
-                .catch((err) => console.error("Error adding question:", err));
+            console.error("Error during JSON normalization:", e);
+            console.error("Original content from OpenAI:", cleaned);
+            return "CRITICAL_ERROR";
         }
     }
 
-    function handleChange(input: React.FormEvent<HTMLInputElement>) {
-        const { name, value } = input.currentTarget;
-        const newQuizForm: QUIZ_FORM_OPTIONS = { ...quizForm };
+    return "CRITICAL_ERROR";
+}
 
-        if (name === "numberOfQuestions" || name === "numberOfOptions") {
-            newQuizForm[name] = value === "" ? 0 : parseInt(value, 10);
-        } else {
-            newQuizForm[name] = value;
-        }
-
-        setQuizForm(newQuizForm);
-    }
-
-    function createJSONPrompt(input: QUIZ_FORM_OPTIONS): string {
-        return `
+function createJSONPrompt(input: QUIZ_FORM_OPTIONS): string {
+    return `
 You are generating a multiple-choice quiz in STRICT JSON ONLY (no markdown, no backticks).
 
 Requirements:
@@ -280,166 +203,219 @@ Rules:
 
 The quiz topic is: ${input.topic}.
 `.trim();
+}
+
+function AddQuiz() {
+    const [quizForm, setQuizForm] = useState<QUIZ_FORM_OPTIONS>(defaultQuizOptions);
+    const [quizId, setQuizId] = useState<number>(-1);
+    const [errors, setErrors] = useState<string[]>([]);
+
+    const url: string = "https://quick-quiz-257248753584.us-central1.run.app/api/quizzes";
+    const navigate = useNavigate();
+
+    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setErrors([]);
+        addQuiz();
     }
 
-    function buildFallbackQuiz(
-        topic: string,
-        numberOfQuestions: number,
-        numberOfOptions: number
-    ): string {
-        const questions = [];
-        for (let i = 0; i < numberOfQuestions; i++) {
-            const options: string[] = [];
-            for (let j = 0; j < numberOfOptions; j++) {
-                const label = String.fromCharCode(65 + j); // A, B, C, ...
-                options.push(`Placeholder option ${label} for question ${i + 1}`);
-            }
-            questions.push({
-                question: `Placeholder question ${i + 1} about ${topic}`,
-                options,
-                correct_answer: options[0],
-            });
+    async function addQuiz() {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            setErrors(["You must be logged in as a teacher to create a quiz."]);
+            return;
         }
-        return JSON.stringify({ questions });
-    }
 
-    function normalizeQuizJson(
-        rawJson: string,
-        numberOfOptions: number,
-        numberOfQuestions: number,
-        topic: string
-    ): string {
-        type Question = {
-            question: string;
-            options?: string[];
-            correct_answer: string;
-            [key: string]: any;
-        };
+        quizForm.prompt = `This is a quiz about ${quizForm.topic}.`;
 
-        type QuizShape = {
-            questions: Question[];
-            [key: string]: any;
-        };
+        const numberOfOptions = Number(quizForm.numberOfOptions);
 
-        // Strip out literal control characters which can show up in broken generations
-        let cleaned = rawJson.replace(/[\u0000-\u0019]+/g, " ");
+        const aiResponse = await getOpenAiJSONResponse(
+            createJSONPrompt(quizForm),
+            numberOfOptions
+        );
 
-        let parsed: QuizShape;
+        if (aiResponse === "CRITICAL_ERROR") {
+            setErrors([
+                "There was a problem generating quiz questions. Please try again or reduce the number of questions."
+            ]);
+            return;
+        }
+
+        // Double-check that the AI JSON is parseable before sending to backend
         try {
-            parsed = JSON.parse(cleaned);
+            JSON.parse(aiResponse);
         } catch (e) {
-            console.error("Failed to parse OpenAI JSON in normalizeQuizJson:", e);
-            console.error("Cleaned content that failed to parse:", cleaned);
-            // Fallback: generate a safe quiz with the right shape
-            return buildFallbackQuiz(topic, numberOfQuestions, numberOfOptions);
+            console.error("Final quiz JSON failed to parse, aborting:", e);
+            setErrors([
+                "Generated quiz data was invalid. Please try again."
+            ]);
+            return;
         }
 
-        if (!Array.isArray(parsed.questions)) {
-            console.error("Parsed JSON has no 'questions' array.");
-            return buildFallbackQuiz(topic, numberOfQuestions, numberOfOptions);
-        }
+        quizForm.quizJSON = aiResponse;
 
-        parsed.questions = parsed.questions.map((q, index) => {
-            if (!Array.isArray(q.options)) {
-                q.options = [];
-            }
+        const payload = {
+            title: quizForm.title,
+            description: quizForm.description,
+            topic: quizForm.topic,
+            numberOfQuestions: Number(quizForm.numberOfQuestions),
+            numberOfOptions: numberOfOptions,
+            prompt: quizForm.prompt,
+            quizJSON: quizForm.quizJSON
+        };
 
-            // Clean options
-            q.options = q.options
-                .filter((o) => typeof o === "string")
-                .map((o) => o.trim())
-                .filter((o) => o.length > 0);
+        const initHeaders: Headers = new Headers();
+        initHeaders.append("Content-Type", "application/json");
+        initHeaders.append("Authorization", "Bearer " + token);
 
-            // Ensure correct_answer is present
-            if (typeof q.correct_answer === "string") {
-                if (!q.options.includes(q.correct_answer)) {
-                    q.options.unshift(q.correct_answer);
+        const init: INIT = {
+            method: "POST",
+            headers: initHeaders,
+            body: JSON.stringify(payload)
+        };
+
+        fetch(url, init)
+            .then((response) => {
+                if (response.status === 201 || response.status === 400) {
+                    return response.json();
+                } else {
+                    return Promise.reject(`Unexpected Status Code: ${response.status}`);
                 }
-            }
-
-            // Remove duplicates
-            const seen = new Set<string>();
-            q.options = q.options.filter((o) => {
-                if (seen.has(o)) return false;
-                seen.add(o);
-                return true;
+            })
+            .then((data) => {
+                if (data.quizId) {
+                    setQuizId(data.quizId);
+                    addQuestionsAndOptions(data.quizJSON, data.quizId);
+                    window.alert("Quiz created! Thank you for your patience.");
+                    navigate("/quizzes");
+                } else {
+                    setErrors(data);
+                }
+            })
+            .catch((err) => {
+                console.error("Error creating quiz:", err);
+                setErrors(["An unexpected error occurred while creating the quiz."]);
             });
+    }
 
-            // Truncate if too many
-            if (q.options.length > numberOfOptions) {
-                q.options = q.options.slice(0, numberOfOptions);
-            }
-
-            // Pad if too few
-            while (q.options.length < numberOfOptions) {
-                const label = String.fromCharCode(65 + q.options.length); // A, B, C...
-                q.options.push(
-                    `Placeholder option ${label} for question ${index + 1}`
-                );
-            }
-
-            // Guarantee correct_answer is in options
-            if (
-                typeof q.correct_answer === "string" &&
-                !q.options.includes(q.correct_answer)
-            ) {
-                q.options[0] = q.correct_answer;
-            }
-
-            return q;
-        });
-
-        const normalized = JSON.stringify(parsed);
+    function addQuestionsAndOptions(inJSON: string, quizId: number) {
+        let jsonData: any;
         try {
-            console.log("Normalized quiz JSON:", JSON.parse(normalized));
-        } catch {
-            // If this blows up somehow, no need to crash the app.
+            jsonData = JSON.parse(inJSON);
+        } catch (e) {
+            console.error("Failed to parse quizJSON in addQuestionsAndOptions:", e);
+            setErrors(["Failed to process quiz questions."]);
+            return;
         }
 
-        return normalized;
-    }
-
-    async function getOpenAiJSONResponse(
-        input: string,
-        numberOfOptions: number,
-        numberOfQuestions: number,
-        topic: string
-    ): Promise<string> {
-        const openai: OpenAI = new OpenAI({
-            apiKey: localStorage.getItem("secretKey") || "NONE",
-            dangerouslyAllowBrowser: true,
-        });
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: "You are a helpful assistant." },
-                { role: "user", content: input },
-            ],
-        });
-
-        const content = completion.choices[0].message.content;
-
-        if (content !== null) {
-            let openAIOutput: string = content
-                .replace("```json", "")
-                .replace("```", "")
-                .trim();
-
-            const normalized = normalizeQuizJson(
-                openAIOutput,
-                numberOfOptions,
-                numberOfQuestions,
-                topic
-            );
-
-            return normalized;
+        if (!Array.isArray(jsonData.questions)) {
+            console.error("No 'questions' array in quiz JSON.");
+            setErrors(["Quiz data is missing questions."]);
+            return;
         }
 
-        return "CRITICAL_ERROR";
+        const token: string = localStorage.getItem("token") || "DEFAULT";
+        const initHeaders: Headers = new Headers();
+        initHeaders.append("Content-Type", "application/json");
+        initHeaders.append("Authorization", "Bearer " + token);
+
+        jsonData.questions.forEach((q: any, index: number) => {
+            const newQuestionForm: QUESTION_OPTIONS = {
+                ...defaultQuestionOptions,
+                quizId: quizId,
+                questionText: q.question
+            };
+
+            const correctAnswer: string = q.correct_answer;
+            const options: string[] = Array.isArray(q.options) ? q.options : [];
+
+            if (options.length === 0) {
+                console.warn(`Question ${index + 1} has no options, skipping.`);
+                return;
+            }
+
+            const questionInit: INIT = {
+                method: "POST",
+                headers: initHeaders,
+                body: JSON.stringify(newQuestionForm)
+            };
+
+            fetch(
+                "https://quick-quiz-257248753584.us-central1.run.app/api/questions",
+                questionInit
+            )
+                .then((response) => {
+                    if (response.status === 201 || response.status === 400) {
+                        return response.json();
+                    } else {
+                        return Promise.reject(`Unexpected Status Code: ${response.status}`);
+                    }
+                })
+                .then((data) => {
+                    console.log(
+                        "Added question w/ quiz ID " +
+                            newQuestionForm.quizId +
+                            " with text " +
+                            newQuestionForm.questionText
+                    );
+                    if (data.questionId) {
+                        options.forEach((optText: string) => {
+                            const newOptionForm: OPTION_OPTIONS = {
+                                ...defaultOptionOptions,
+                                questionId: data.questionId,
+                                optionText: optText,
+                                isCorrect: optText === correctAnswer
+                            };
+
+                            const optionInit: INIT = {
+                                method: "POST",
+                                headers: initHeaders,
+                                body: JSON.stringify(newOptionForm)
+                            };
+
+                            fetch(
+                                "https://quick-quiz-257248753584.us-central1.run.app/api/options",
+                                optionInit
+                            )
+                                .then((response) => {
+                                    if (response.status === 201 || response.status === 400) {
+                                        return response.json();
+                                    } else {
+                                        return Promise.reject(
+                                            `Unexpected Status Code: ${response.status}`
+                                        );
+                                    }
+                                })
+                                .then((data) => {
+                                    if (!data.optionId) {
+                                        setErrors(data);
+                                    }
+                                })
+                                .catch(console.log);
+                        });
+                    } else {
+                        setErrors(data);
+                    }
+                })
+                .catch(console.log);
+        });
     }
 
-    // Conditional Rendering:
+    function handleChange(input: React.FormEvent<HTMLInputElement>) {
+        const { name, value } = input.currentTarget;
+        const newQuizForm: QUIZ_FORM_OPTIONS = { ...quizForm };
+
+        if (name === "numberOfQuestions" || name === "numberOfOptions") {
+            newQuizForm[name] = value === "" ? 0 : parseInt(value, 10);
+        } else {
+            newQuizForm[name] = value;
+        }
+
+        setQuizForm(newQuizForm);
+    }
+
+    // Authorization checks use localStorage now
     if (localStorage.getItem("ROLE_Teacher") === null) {
         return (
             <div className="notfound-container">
@@ -454,11 +430,8 @@ The quiz topic is: ${input.topic}.
         return (
             <>
                 <div className="container">
-                    <p>
-                        Before creating a quiz, you need to insert your OpenAI Secret
-                        Key.
-                    </p>
-                    <p>Please go to "Insert Your Secret Key" above to do so.</p>
+                    <p>Before creating a quiz, you need to insert your OpenAI Secret Key.</p>
+                    <p>Please go to &quot;Insert Your Secret Key&quot; above to do so.</p>
                 </div>
             </>
         );
@@ -510,7 +483,7 @@ The quiz topic is: ${input.topic}.
                         <input
                             id="topic"
                             name="topic"
-                            type="string"
+                            type="text"
                             className="form-control"
                             value={quizForm.topic}
                             onChange={handleChange}
@@ -518,9 +491,7 @@ The quiz topic is: ${input.topic}.
                         />
                     </fieldset>
                     <fieldset className="form-group">
-                        <label htmlFor="numberOfQuestions">
-                            Number of Questions:
-                        </label>
+                        <label htmlFor="numberOfQuestions">Number of Questions:</label>
                         <input
                             id="numberOfQuestions"
                             name="numberOfQuestions"
@@ -532,9 +503,7 @@ The quiz topic is: ${input.topic}.
                         />
                     </fieldset>
                     <fieldset className="form-group">
-                        <label htmlFor="numberOfOptions">
-                            Number of Options to Choose From:
-                        </label>
+                        <label htmlFor="numberOfOptions">Number of Options to Choose From:</label>
                         <input
                             id="numberOfOptions"
                             name="numberOfOptions"
@@ -553,11 +522,7 @@ The quiz topic is: ${input.topic}.
                         >
                             Create Quiz
                         </button>
-                        <Link
-                            className="link btn btn-outline-danger"
-                            to={"/"}
-                            type="button"
-                        >
+                        <Link className="link btn btn-outline-danger" to={"/"} type="button">
                             Cancel
                         </Link>
                     </div>
