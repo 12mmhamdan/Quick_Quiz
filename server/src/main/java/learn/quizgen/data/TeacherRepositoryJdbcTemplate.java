@@ -35,12 +35,10 @@ public class TeacherRepositoryJdbcTemplate implements TeacherRepository {
     @Override
     public Teacher findByUserId(int userId) {
         final String sql = "SELECT * FROM teacher WHERE user_id = ?";
-        try {
-            return jdbcTemplate.queryForObject(sql, new TeacherMapper(), userId);
-        } catch (EmptyResultDataAccessException ex) {
-            return null;
-        }
+        List<Teacher> teachers = jdbcTemplate.query(sql, new TeacherMapper(), userId);
+        return teachers.size() > 0 ? teachers.get(0) : null;
     }
+
     @Override
     public Teacher add(Teacher teacher) {
         final String sql = "INSERT INTO teacher (user_id) VALUES (?)";
