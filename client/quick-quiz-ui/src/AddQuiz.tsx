@@ -231,79 +231,88 @@ function AddQuiz() {
     // Create prompt from inputted data:
     quizForm.prompt = `This is a quiz about ${quizForm.topic}.`;
 
+    const numOptions = Number(quizForm.numberOfOptions);
+
     // Generate quiz JSON from OpenAI
-    getOpenAiJSONResponse(
-      createJSONPrompt(quizForm),
-      Number(quizForm.numberOfOptions)
-    ).then((response) => {
-      if (response === "CRITICAL_ERROR") {
-        window.alert(
-          "Something has gone wrong with response generation. Please try again."
-        );
-        return;
-      } else {
-        quizForm.quizJSON = response;
+    getOpenAiJSONResponse(createJSONPrompt(quizForm), numOptions).then(
+      (response) => {
+        if (response === "CRITICAL_ERROR") {
+          window.alert(
+            "Something has gone wrong with response generation. Please try again."
+          );
+          return;
+        } else {
+          quizForm.quizJSON = response;
 
-        // Build payload WITHOUT teacherId (backend will figure out teacher from JWT)
-        const payload = {
-          title: quizForm.title,
-          description: quizForm.description,
-          topic: quizForm.topic,
-          numberOfQuestions: Number(quizForm.numberOfQuestions),
-          numberOfOptions: Number(quizForm.numberOfOptions),
-          prompt: quizForm.prompt,
-          quizJSON: quizForm.quizJSON,
-        };
+          // Build payload WITHOUT teacherId (backend will figure out teacher from JWT)
+          const payload = {
+            title: quizForm.title,
+            description: quizForm.description,
+            topic: quizForm.topic,
+            numberOfQuestions: Number(quizForm.numberOfQuestions),
+            numberOfOptions: numOptions,
+            prompt: quizForm.prompt,
+            quizJSON: quizForm.quizJSON,
+          };
 
-        // Send the data to the server:
-        const token: string | undefined =
-          sessionStorage.getItem("token") || "DEFAULT";
-        const initHeaders: Headers = new Headers();
+          // Send the data to the server:
+          const token: string | undefined =
+            sessionStorage.getItem("token") || "DEFAULT";
+          const initHeaders: Headers = new Headers();
 
-        initHeaders.append("Content-Type", "application/json");
-        initHeaders.append("Authorization", "Bearer " + token);
+          initHeaders.append("Content-Type", "application/json");
+          initHeaders.append("Authorization", "Bearer " + token);
 
-        console.log("Quiz payload being sent:", JSON.stringify(payload));
+          console.log("Quiz payload being sent:", JSON.stringify(payload));
 
-        const init: INIT = {
-          method: "POST",
-          headers: initHeaders,
-          body: JSON.stringify(payload),
-        };
+          const init: INIT = {
+            method: "POST",
+            headers: initHeaders,
+            body: JSON.stringify(payload),
+          };
 
-        fetch(url, init)
-          .then((response) => {
-            if (response.status === 201 || response.status === 400) {
-              return response.json();
-            } else {
-              return Promise.reject(
-                `Unexpected Status Code: ${response.status}`
-              );
-            }
-          })
-          .then((data) => {
-            if (data.quizId) {
-              // happy path
-              setQuizId(data.quizId);
+          fetch(url, init)
+            .then((response) => {
+              if (response.status === 201 || response.status === 400) {
+                return response.json();
+              } else {
+                return Promise.reject(
+                  `Unexpected Status Code: ${response.status}`
+                );
+              }
+            })
+            .then((data) => {
+              if (data.quizId) {
+                // happy path
+                setQuizId(data.quizId);
 
-              // prefer backend JSON if it echoes it back, otherwise use what we sent
-              const quizJsonString = data.quizJSON || quizForm.quizJSON;
+                // prefer backend JSON if it echoes it back, otherwise use what we sent
+                const quizJsonString = data.quizJSON || quizForm.quizJSON;
 
-              addQuestionsAndOptions(quizJsonString, data.quizId);
+                addQuestionsAndOptions(
+                  quizJsonString,
+                  data.quizId,
+                  numOptions
+                );
 
-              window.alert("Quiz created! Thank you for your patience.");
-              navigate("/quizzes");
-            } else {
-              // unhappy
-              setErrors(data);
-            }
-          })
-          .catch(console.log);
+                window.alert("Quiz created! Thank you for your patience.");
+                navigate("/quizzes");
+              } else {
+                // unhappy
+                setErrors(data);
+              }
+            })
+            .catch(console.log);
+        }
       }
-    });
+    );
   }
 
-  function addQuestionsAndOptions(inJSON: string, quizId: number) {
+  function addQuestionsAndOptions(
+    inJSON: string,
+    quizId: number,
+    numberOfOptions: number
+  ) {
     let jsonData: any;
 
     try {
@@ -323,21 +332,69 @@ function AddQuiz() {
     }
 
     for (let i = 0; i < jsonData.questions.length; i++) {
+      const rawQuestion = jsonData.questions[i];
+
       const newQuestionForm: QUESTION_OPTIONS = { ...defaultQuestionOptions };
       // Set the quiz ID from the state variable:
       newQuestionForm.quizId = quizId;
 
-      const options = jsonData.questions[i].options;
-      if (!Array.isArray(options) || options.length === 0) {
-        console.warn(`Question ${i + 1} has no options after normalization.`);
-        // Skip this question instead of stopping the entire loop
-        continue;
+      // Get the question text:
+      newQuestionForm.questionText = rawQuestion.question;
+
+      let correctAnswer: string = rawQuestion.correct_answer;
+
+      // --- SECOND PASS ENFORCEMENT ON OPTIONS ---
+      let options: any[] = Array.isArray(rawQuestion.options)
+        ? rawQuestion.options
+        : [];
+
+      // Clean out bad values
+      options = options
+        .filter((o) => typeof o === "string")
+        .map((o) => o.trim())
+        .filter((o) => o.length > 0);
+
+      // Ensure correct_answer is present
+      if (typeof correctAnswer === "string" && correctAnswer.trim().length > 0) {
+        if (!options.includes(correctAnswer)) {
+          options.unshift(correctAnswer);
+        }
       }
 
-      // Get the question text:
-      newQuestionForm.questionText = jsonData.questions[i].question;
+      // Remove duplicates while preserving order
+      const seen = new Set<string>();
+      options = options.filter((o) => {
+        if (seen.has(o)) return false;
+        seen.add(o);
+        return true;
+      });
 
-      let correctAnswer: string = jsonData.questions[i].correct_answer;
+      // Truncate or pad to exactly `numberOfOptions`
+      if (options.length > numberOfOptions) {
+        options = options.slice(0, numberOfOptions);
+      }
+
+      while (options.length < numberOfOptions) {
+        const label = String.fromCharCode(65 + options.length); // A, B, C...
+        options.push(`Placeholder option ${label} for question ${i + 1}`);
+      }
+
+      // Ensure correct_answer is still one of the options
+      if (
+        typeof correctAnswer === "string" &&
+        correctAnswer.trim().length > 0 &&
+        !options.includes(correctAnswer)
+      ) {
+        options[0] = correctAnswer;
+      }
+
+      // Overwrite the question's options with the enforced version
+      rawQuestion.options = options;
+
+      // Debug: log how many options we ended up with for this question
+      console.log(
+        `Question ${i + 1}: final options length = ${rawQuestion.options.length}`
+      );
 
       // QUESTION + OPTION
       const token: string | undefined =
@@ -376,14 +433,14 @@ function AddQuiz() {
           );
           if (data.questionId) {
             // happy path – now add options
-            for (let j = 0; j < jsonData.questions[i].options.length; j++) {
+            for (let j = 0; j < rawQuestion.options.length; j++) {
               const newOptionForm: OPTION_OPTIONS = { ...defaultOptionOptions };
 
               // Question ID:
               newOptionForm.questionId = data.questionId;
 
               // Get the option text:
-              newOptionForm.optionText = jsonData.questions[i].options[j];
+              newOptionForm.optionText = rawQuestion.options[j];
               if (newOptionForm.optionText === correctAnswer) {
                 newOptionForm.isCorrect = true;
               } else {
