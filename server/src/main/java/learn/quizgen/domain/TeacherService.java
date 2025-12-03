@@ -22,6 +22,11 @@ public class TeacherService {
         return teacherRepository.findById(optionId);
     }
 
+    // 🔹 NEW
+    public Teacher findByUserId(int userId) {
+        return teacherRepository.findByUserId(userId);
+    }
+
     public Result<Teacher> add(Teacher teacher){
         Result<Teacher> result = validate(teacher);
 
@@ -38,6 +43,7 @@ public class TeacherService {
 
         return result;
     }
+
 
     public Result<Teacher> update(Teacher teacher){
         Result<Teacher> result = validate(teacher);
@@ -76,3 +82,4 @@ public class TeacherService {
         return result;
     }
 }
+

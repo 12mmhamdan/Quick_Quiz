@@ -38,7 +38,13 @@ public class QuizRepositoryJdbcTemplate implements QuizRepository {
 
     @Override
     public Quiz add(Quiz quiz) {
-        final String sql = "INSERT INTO quiz (teacher_id, title, description, number_of_questions, number_of_options, topic, prompt, quiz_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        if (quiz.getTeacherId() <= 0) {
+            throw new IllegalArgumentException("teacherId must be set before saving a quiz.");
+        }
+
+        final String sql = "INSERT INTO quiz (teacher_id, title, description, number_of_questions, number_of_options, topic, prompt, quiz_json) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -55,12 +61,16 @@ public class QuizRepositoryJdbcTemplate implements QuizRepository {
             return ps;
         }, keyHolder);
 
-        quiz.setQuizId(keyHolder.getKey().intValue());  // Set the generated quiz_id
+        quiz.setQuizId(keyHolder.getKey().intValue());
         return quiz;
     }
 
     @Override
     public boolean update(Quiz quiz) {
+        if (quiz.getTeacherId() <= 0) {
+            throw new IllegalArgumentException("teacherId must be set before updating a quiz.");
+        }
+
         final String sql = "UPDATE quiz SET teacher_id = ?, title = ?, description = ?, number_of_questions = ?, number_of_options = ?, topic = ?, prompt = ?, quiz_json = ? WHERE quiz_id = ?";
         return jdbcTemplate.update(sql,
                 quiz.getTeacherId(),
@@ -72,6 +82,8 @@ public class QuizRepositoryJdbcTemplate implements QuizRepository {
                 quiz.getPrompt(),
                 quiz.getQuizJSON(),
                 quiz.getQuizId()) > 0;
+
+
     }
 
     @Override

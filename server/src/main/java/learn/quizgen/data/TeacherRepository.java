@@ -9,6 +9,8 @@ public interface TeacherRepository {
 
     Teacher findById(int id);
 
+    Teacher findByUserId(int userId);
+
     Teacher add(Teacher teacher);
 
     boolean update(Teacher teacher);

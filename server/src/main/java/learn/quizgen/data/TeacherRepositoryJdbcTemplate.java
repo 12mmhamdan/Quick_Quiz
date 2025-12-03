@@ -2,9 +2,13 @@ package learn.quizgen.data;
 
 import learn.quizgen.data.mapper.TeacherMapper;
 import learn.quizgen.models.Teacher;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.PreparedStatement;
 import java.util.List;
 
 @Repository
@@ -29,9 +33,27 @@ public class TeacherRepositoryJdbcTemplate implements TeacherRepository {
     }
 
     @Override
+    public Teacher findByUserId(int userId) {
+        final String sql = "SELECT * FROM teacher WHERE user_id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, new TeacherMapper(), userId);
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
+    }
+    @Override
     public Teacher add(Teacher teacher) {
         final String sql = "INSERT INTO teacher (user_id) VALUES (?)";
-        jdbcTemplate.update(sql, teacher.getUserId());
+
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        jdbcTemplate.update(conn -> {
+            PreparedStatement ps = conn.prepareStatement(sql, new String[]{"teacher_id"});
+            ps.setInt(1, teacher.getUserId());
+            return ps;
+        }, keyHolder);
+
+        teacher.setTeacherId(keyHolder.getKey().intValue());
         return teacher;
     }
 

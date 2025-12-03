@@ -2,7 +2,11 @@ package learn.quizgen.controllers;
 
 import learn.quizgen.domain.QuizService;
 import learn.quizgen.domain.Result;
+import learn.quizgen.domain.TeacherService;
+import learn.quizgen.models.AppUser;
 import learn.quizgen.models.Quiz;
+import learn.quizgen.models.Teacher;
+import learn.quizgen.security.AppUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,14 +19,35 @@ import java.util.List;
 public class QuizController {
 
     private final QuizService quizService;
+    private final AppUserService appUserService;   // 🔹 NEW
+    private final TeacherService teacherService;   // 🔹 NEW
 
-    public QuizController(QuizService quizService) {
+    public QuizController(QuizService quizService,
+                          AppUserService appUserService,
+                          TeacherService teacherService) {
         this.quizService = quizService;
+        this.appUserService = appUserService;
+        this.teacherService = teacherService;
     }
 
     @PostMapping
     @PreAuthorize("hasRole('Teacher')")
-    public ResponseEntity<?> createQuiz(@RequestBody Quiz quiz) {
+    public ResponseEntity<?> createQuiz(@RequestBody Quiz quiz, java.security.Principal principal) {
+
+        // 1) Get username from JWT
+        String username = principal.getName();
+        AppUser appUser = (AppUser) appUserService.loadUserByUsername(username);
+
+        // 2) Find teacher for this user
+        Teacher teacher = teacherService.findByUserId(appUser.getAppUserId());
+        if (teacher == null) {
+            return new ResponseEntity<>("No teacher profile found for current user.", HttpStatus.FORBIDDEN);
+        }
+
+        // 3) Force quiz.teacherId to the logged-in teacher
+        quiz.setTeacherId(teacher.getTeacherId());
+
+        // 4) Proceed with create
         Result<Quiz> result = quizService.addQuiz(quiz);
 
         if (result.isSuccess()) {

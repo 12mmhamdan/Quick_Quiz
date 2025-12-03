@@ -1,6 +1,9 @@
 package learn.quizgen.controllers;
 
+import learn.quizgen.domain.Result;
+import learn.quizgen.domain.TeacherService;
 import learn.quizgen.models.AppUser;
+import learn.quizgen.models.Teacher;
 import learn.quizgen.security.AppUserService;
 import learn.quizgen.security.JwtConverter;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,12 +29,20 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtConverter converter;
     private final AppUserService appUserService;
+    private final TeacherService teacherService; // 🔹 NEW
 
-    public AuthController(AuthenticationManager authenticationManager, JwtConverter converter, AppUserService appUserService) {
+    public AuthController(AuthenticationManager authenticationManager,
+                          JwtConverter converter,
+                          AppUserService appUserService,
+                          TeacherService teacherService) {
         this.authenticationManager = authenticationManager;
         this.converter = converter;
         this.appUserService = appUserService;
+        this.teacherService = teacherService; // 🔹 NEW
     }
+
+
+
 
     @GetMapping("/{username}")
     public UserDetails getUserByUsername(@PathVariable String username){
@@ -68,20 +79,21 @@ public class AuthController {
         AppUser appUser = null;
 
         try {
-            // Extract and log user details
             String firstName = (String) userDetails.get("firstName");
             String lastName = (String) userDetails.get("lastName");
             String username = (String) userDetails.get("username");
             String password = (String) userDetails.get("password");
+            @SuppressWarnings("unchecked")
             List<String> roles = (List<String>) userDetails.get("roles");
 
-            // Log the extracted values
-            System.out.println("First Name: " + firstName);
-            System.out.println("Last Name: " + lastName);
-            System.out.println("Username: " + username);
-            System.out.println("Password: " + password);
-
             appUser = appUserService.create(firstName, lastName, username, password, roles);
+
+            // ⭐ If this user is a Teacher, insert a row into teacher table
+            if (roles != null && roles.contains("Teacher")) {
+                Teacher teacher = new Teacher(0, appUser.getAppUserId());
+                teacherService.add(teacher);
+            }
+
         } catch (ValidationException ex) {
             return new ResponseEntity<>(List.of(ex.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (DuplicateKeyException ex) {
@@ -93,5 +105,4 @@ public class AuthController {
 
         return new ResponseEntity<>(map, HttpStatus.CREATED);
     }
-
 }
