@@ -48,7 +48,7 @@ function TeacherInsertSecretKey() {
         <section className="container">
             <h2 className="mb-4">Your Secret Key</h2>
             <p>Insert your OpenAI Secret Key here.</p>
-            <p>If you do not have a Secret Key and need to get one or want to know more, use these buttons to open a new tag and login to OpenAI:</p>
+            <p>If you do not have a Secret Key and need to get one or want to know more, use these buttons to open a new tab and login to OpenAI:</p>
             <a className="btn btn-outline-primary btn-lg  mb-4" href="https://openai.com/" role="button">OpenAI</a>
             <p>Afterward, generate a new Secret Key:</p>
             <a className="btn btn-outline-primary btn-lg  mb-4" href="https://platform.openai.com/api-keys">Get New API Key</a>
