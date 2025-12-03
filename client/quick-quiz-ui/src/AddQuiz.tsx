@@ -11,7 +11,6 @@ interface INIT {
 
 interface QUIZ_FORM_OPTIONS {
     [key: string]: number | string,
-    teacherId: number,
     title: string,
     description: string,
     topic: string,
@@ -22,7 +21,6 @@ interface QUIZ_FORM_OPTIONS {
 }
 
 let defaultQuizOptions: QUIZ_FORM_OPTIONS = {
-    teacherId: 2,   // Changed from 0
     title: '',
     description: '',
     topic: '',
@@ -75,9 +73,6 @@ function AddQuiz() {
     const url: string = 'https://quick-quiz-257248753584.us-central1.run.app/api/quizzes';
     const navigate: Function = useNavigate();
 
-    // We're not loading anything, so no need to use `useEffect()` here.
-    // If we are changing anything, we're using the session variable from the User Login.
-
     // Methods
     function handleSubmit(input: React.FormEvent<HTMLFormElement>) {
         input.preventDefault();
@@ -88,19 +83,26 @@ function AddQuiz() {
 
     function addQuiz() {
         // Create prompt from inputted data:
-        // NOTE: The API Prompt is too big for the HTTP request! Switching to a placeholder;
         quizForm.prompt = `This is a quiz about ${quizForm.topic}.`;
 
-        // Debug method. This SHOULD show up in console.log as a double check to ensure that the prompt is correct.
-        // console.log(quizForm.prompt);
-
-        // Create and Add Quiz:
+        // Generate quiz JSON from OpenAI
         getOpenAiJSONResponse(createJSONPrompt(quizForm)).then(response => {
             if (response === "CRITICAL_ERROR") {
                 window.alert("Something has gone wrong with response generation. Please try again.");
                 return;
             } else {
                 quizForm.quizJSON = response;
+
+                // Build payload WITHOUT teacherId (backend will figure out teacher from JWT)
+                const payload = {
+                    title: quizForm.title,
+                    description: quizForm.description,
+                    topic: quizForm.topic,
+                    numberOfQuestions: Number(quizForm.numberOfQuestions),
+                    numberOfOptions: Number(quizForm.numberOfOptions),
+                    prompt: quizForm.prompt,
+                    quizJSON: quizForm.quizJSON
+                };
 
                 // Send the data to the server:
                 const token: string | undefined = sessionStorage.getItem('token') || "DEFAULT";
@@ -109,12 +111,12 @@ function AddQuiz() {
                 initHeaders.append('Content-Type', 'application/json');
                 initHeaders.append('Authorization', 'Bearer ' + token)
 
-                console.log(JSON.stringify(quizForm));
+                console.log(JSON.stringify(payload));
 
                 const init: INIT = {
                     method: 'POST',
                     headers: initHeaders,
-                    body: JSON.stringify(quizForm)
+                    body: JSON.stringify(payload)
                 }
 
                 fetch(url, init)
@@ -126,7 +128,7 @@ function AddQuiz() {
                         }
                     })
                     .then(data => {
-                        if (data.quizId) { // happy path | Change ID name if necessary so it lines up with the backend
+                        if (data.quizId) { // happy path
                             setQuizId(data.quizId);
 
                             addQuestionsAndOptions(data.quizJSON, data.quizId);
@@ -143,11 +145,10 @@ function AddQuiz() {
     }
 
     function addQuestionsAndOptions(inJSON: string, quizId: number) {
-        //console.log(inJSON);
-        let jsonData = JSON.parse(inJSON);   // Can't be directly declared as JSON b/c the compiler doesn't like that
+        let jsonData = JSON.parse(inJSON);
 
         for (let i = 0; i < jsonData.questions.length; i++) {
-            const newQuestionForm: QUESTION_OPTIONS = defaultQuestionOptions;
+            const newQuestionForm: QUESTION_OPTIONS = { ...defaultQuestionOptions };
             // Set the quiz ID from the state variable:
             newQuestionForm.quizId = quizId;
 
@@ -170,7 +171,6 @@ function AddQuiz() {
                 body: JSON.stringify(newQuestionForm)
             }
 
-
             // POST the question to the server
             fetch('https://quick-quiz-257248753584.us-central1.run.app/api/questions', init)
                 .then(response => {
@@ -182,17 +182,16 @@ function AddQuiz() {
                 })
                 .then(data => {
                     console.log('Added question w/ quiz ID ' + newQuestionForm.quizId + ' with text ' + newQuestionForm.questionText);
-                    if (data.questionId) { // happy path | Change ID name if necessary so it lines up with the backend
+                    if (data.questionId) { // happy path
                         for (let j = 0; j < jsonData.questions[i].options.length; j++) {
-                            const newOptionForm: OPTION_OPTIONS = defaultOptionOptions;
+                            const newOptionForm: OPTION_OPTIONS = { ...defaultOptionOptions };
 
                             // Question ID:
                             newOptionForm.questionId = data.questionId;
 
                             // Get the option text:
                             newOptionForm.optionText = jsonData.questions[i].options[j];
-                            if (newOptionForm.optionText == correctAnswer) {
-                                // If the option text is correct, set to True.
+                            if (newOptionForm.optionText === correctAnswer) {
                                 newOptionForm.isCorrect = true;
                             } else {
                                 newOptionForm.isCorrect = false;
@@ -214,9 +213,9 @@ function AddQuiz() {
                                     }
                                 })
                                 .then(data => {
-                                    if (data.optionId) { // happy path | Change ID name if necessary so it lines up with the backend
-                                        // Do nothing - nothing else needs to be done.
-                                    } else { // unhappy 
+                                    if (data.optionId) {
+                                        // all good, nothing else to do
+                                    } else {
                                         setErrors(data);
                                     }
                                 })
@@ -231,8 +230,15 @@ function AddQuiz() {
     }
 
     function handleChange(input: React.FormEvent<HTMLInputElement>) {
+        const { name, value } = input.currentTarget;
         const newQuizForm: QUIZ_FORM_OPTIONS = { ...quizForm };
-        newQuizForm[input.currentTarget.name] = input.currentTarget.value;
+
+        if (name === "numberOfQuestions" || name === "numberOfOptions") {
+            newQuizForm[name] = value === "" ? 0 : parseInt(value, 10);
+        } else {
+            newQuizForm[name] = value;
+        }
+
         setQuizForm(newQuizForm);
     }
 
@@ -241,11 +247,7 @@ function AddQuiz() {
     }
 
     async function getOpenAiJSONResponse(input: string): Promise<string> {
-        // Create OpenAI using secret key. This SHOULD be a secret (probably set by the Teacher, but we wanted to limited the scope of our project.)
-
-        // Take input from session:
         const openai: OpenAI = new OpenAI({ apiKey: sessionStorage.getItem('secretKey') || "NONE", dangerouslyAllowBrowser: true });
-
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
@@ -253,28 +255,24 @@ function AddQuiz() {
                 { role: "system", content: "You are a helpful assistant." },
                 {
                     role: "user",
-                    // This should be the prompt input.
                     content: input,
                 },
             ],
         });
 
         if (completion.choices[0].message.content !== null) {
-            // Get text from the response to form a valid JSON object.
             let openAIOutput: string = completion.choices[0].message.content
                 .replace('```json', '')
                 .replace('```', '');
 
-            // Get the JSON in expanded form:
             const jsonObjectExpanded: JSON = JSON.parse(openAIOutput);
             console.log(jsonObjectExpanded);
-            // Reduce it to a single line:
+
             const jsonObjectSingleString: string = JSON.stringify(jsonObjectExpanded);
             console.log(jsonObjectSingleString);
 
             return jsonObjectSingleString;
         }
-        // This should never happen, but we check using this specific string.
         return 'CRITICAL_ERROR';
     }
 
@@ -284,7 +282,7 @@ function AddQuiz() {
             <h1 className="notfound-heading">403</h1>
             <p className="notfound-text">You shouldn't be here!</p>
             <a href="/" className="notfound-link">Go back to Home</a>
-          </div>)
+        </div>)
     } else if (sessionStorage.getItem("secretKey") === null) {
         return (<>
             <div className="container">
@@ -370,18 +368,9 @@ function AddQuiz() {
                         required
                     />
                 </fieldset>
-                <fieldset className="form-group">
-                    <label htmlFor="teacherId">Enter your Teacher ID:</label>
-                    <input
-                        id="teacherId"
-                        name="teacherId"
-                        type="number"
-                        className="form-control"
-                        value={quizForm.teacherId}
-                        onChange={handleChange}
-                        required
-                    />
-                </fieldset>
+
+                {/* teacherId field removed – backend gets teacher from JWT */}
+
                 <div className="mt-4">
                     <button className="btn btn-outline-success mr-4" type="submit">Create Quiz</button>
                     <Link className="link btn btn-outline-danger" to={'/'} type="button">Cancel</Link>
@@ -393,4 +382,3 @@ function AddQuiz() {
 }
 
 export default AddQuiz;
-
