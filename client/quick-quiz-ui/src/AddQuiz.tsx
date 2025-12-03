@@ -86,7 +86,7 @@ function AddQuiz() {
         quizForm.prompt = `This is a quiz about ${quizForm.topic}.`;
 
         // Generate quiz JSON from OpenAI
-        getOpenAiJSONResponse(createJSONPrompt(quizForm)).then(response => {
+        getOpenAiJSONResponse(createJSONPrompt(quizForm),  Number(quizForm.numberOfOptions)).then(response => {
             if (response === "CRITICAL_ERROR") {
                 window.alert("Something has gone wrong with response generation. Please try again.");
                 return;
@@ -146,11 +146,23 @@ function AddQuiz() {
 
     function addQuestionsAndOptions(inJSON: string, quizId: number) {
         let jsonData = JSON.parse(inJSON);
+        if (!Array.isArray(jsonData.questions)) {
+    console.error("No 'questions' array in quiz JSON.");
+    return;
+}
+
 
         for (let i = 0; i < jsonData.questions.length; i++) {
             const newQuestionForm: QUESTION_OPTIONS = { ...defaultQuestionOptions };
             // Set the quiz ID from the state variable:
             newQuestionForm.quizId = quizId;
+
+            const options = jsonData.questions[i].options;
+if (!Array.isArray(options) || options.length === 0) {
+    console.warn(`Question ${i + 1} has no options after normalization.`);
+    return; // or continue, or create a default, depending on how strict you want to be
+}
+
 
             // Get the question text:
             newQuestionForm.questionText = jsonData.questions[i].question;
@@ -243,38 +255,151 @@ function AddQuiz() {
     }
 
     function createJSONPrompt(input: QUIZ_FORM_OPTIONS): string {
-        return `Create for me a quiz in a JSON format. The quiz must be multiple-choice. It must be ${input.numberOfQuestions} questions long with ${input.numberOfOptions} options for each question. The quiz must be about ${input.topic}. The format must contain a 'questions' array containing individual questions. Each question in the 'questions' array is made up of three parts: 'question', a string containing the question itself 'options', an array containing answers as a string 'correct_answer', string representing the correct answer Do not include an explanation before or after the JSON code.`;
+    return `
+You are generating a multiple-choice quiz in STRICT JSON ONLY (no markdown, no backticks).
+
+Requirements:
+- The quiz must have EXACTLY ${input.numberOfQuestions} questions.
+- Each question must have:
+  - "question": string
+  - "options": an array of EXACTLY ${input.numberOfOptions} answer choices (no more, no fewer).
+  - "correct_answer": a string that MUST be one of the elements in "options".
+
+Rules:
+- If you are unsure about distractor answers, invent plausible incorrect options, but always return exactly ${input.numberOfOptions} options.
+- Do NOT include explanations.
+- The top-level JSON must be:
+  {
+    "questions": [
+      {
+        "question": "...",
+        "options": ["...", "...", "...", "..."],
+        "correct_answer": "..."
+      },
+      ...
+    ]
+  }
+
+The quiz topic is: ${input.topic}.
+`.trim();
+}
+
+function normalizeQuizJson(
+    rawJson: string,
+    numberOfOptions: number
+): string {
+    type Question = {
+        question: string;
+        options?: string[];
+        correct_answer: string;
+        [key: string]: any;
+    };
+
+    type QuizShape = {
+        questions: Question[];
+        [key: string]: any;
+    };
+
+    let parsed: QuizShape;
+
+    try {
+        parsed = JSON.parse(rawJson);
+    } catch (e) {
+        console.error("Failed to parse OpenAI JSON:", e);
+        return rawJson; // fall back, you'll likely hit an error later which is fine
     }
 
-    async function getOpenAiJSONResponse(input: string): Promise<string> {
-        const openai: OpenAI = new OpenAI({ apiKey: sessionStorage.getItem('secretKey') || "NONE", dangerouslyAllowBrowser: true });
+    if (!Array.isArray(parsed.questions)) {
+        console.error("Parsed JSON has no 'questions' array.");
+        return rawJson;
+    }
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: "You are a helpful assistant." },
-                {
-                    role: "user",
-                    content: input,
-                },
-            ],
+    parsed.questions = parsed.questions.map((q, index) => {
+        if (!Array.isArray(q.options)) {
+            q.options = [];
+        }
+
+        // Clean out bad values
+        q.options = q.options
+            .filter(o => typeof o === "string")
+            .map(o => o.trim())
+            .filter(o => o.length > 0);
+
+        // If correct_answer isn't in the options, force it in
+        if (typeof q.correct_answer === "string") {
+            if (!q.options.includes(q.correct_answer)) {
+                q.options.unshift(q.correct_answer);
+            }
+        }
+
+        // Remove duplicates while preserving order
+        const seen = new Set<string>();
+        q.options = q.options.filter(o => {
+            if (seen.has(o)) return false;
+            seen.add(o);
+            return true;
         });
 
-        if (completion.choices[0].message.content !== null) {
-            let openAIOutput: string = completion.choices[0].message.content
-                .replace('```json', '')
-                .replace('```', '');
-
-            const jsonObjectExpanded: JSON = JSON.parse(openAIOutput);
-            console.log(jsonObjectExpanded);
-
-            const jsonObjectSingleString: string = JSON.stringify(jsonObjectExpanded);
-            console.log(jsonObjectSingleString);
-
-            return jsonObjectSingleString;
+        // If more than N options, truncate
+        if (q.options.length > numberOfOptions) {
+            q.options = q.options.slice(0, numberOfOptions);
         }
-        return 'CRITICAL_ERROR';
+
+        // If fewer than N options, pad with dummy distractors
+        while (q.options.length < numberOfOptions) {
+            const label = String.fromCharCode(65 + q.options.length); // A, B, C...
+            q.options.push(`Placeholder option ${label} for question ${index + 1}`);
+        }
+
+        // Make sure correct_answer is still one of them
+        if (typeof q.correct_answer === "string" &&
+            !q.options.includes(q.correct_answer)
+        ) {
+            // Force the first option to be correct if needed
+            q.options[0] = q.correct_answer;
+        }
+
+        return q;
+    });
+
+    return JSON.stringify(parsed);
+}
+
+    async function getOpenAiJSONResponse(
+    input: string,
+    numberOfOptions: number
+): Promise<string> {
+    const openai: OpenAI = new OpenAI({
+        apiKey: sessionStorage.getItem('secretKey') || "NONE",
+        dangerouslyAllowBrowser: true
+    });
+
+    const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+            { role: "system", content: "You are a helpful assistant." },
+            { role: "user", content: input },
+        ],
+    });
+
+    const content = completion.choices[0].message.content;
+
+    if (content !== null) {
+        let openAIOutput: string = content
+            .replace('```json', '')
+            .replace('```', '');
+
+        // Normalize to enforce exactly N options per question
+        const normalized = normalizeQuizJson(openAIOutput, numberOfOptions);
+
+        console.log("Normalized quiz JSON:", JSON.parse(normalized));
+
+        return normalized;
     }
+
+    return "CRITICAL_ERROR";
+}
+
 
     // Conditional Rendering:
     if (sessionStorage.getItem("ROLE_Teacher") === null) {
