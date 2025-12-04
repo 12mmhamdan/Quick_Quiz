@@ -10,6 +10,7 @@ interface INIT {
 
 interface QUIZ_FORM_OPTIONS {
     [key: string]: number | string;
+    teacherId: number;
     title: string;
     description: string;
     topic: string;
@@ -20,6 +21,7 @@ interface QUIZ_FORM_OPTIONS {
 }
 
 const defaultQuizOptions: QUIZ_FORM_OPTIONS = {
+    teacherId: 0,
     title: "",
     description: "",
     topic: "",
@@ -53,6 +55,16 @@ const defaultOptionOptions: OPTION_OPTIONS = {
     isCorrect: false
 };
 
+// ---- helpers to read from BOTH localStorage and sessionStorage ----
+
+function getFromStorage(key: string): string | null {
+    const fromLocal = localStorage.getItem(key);
+    if (fromLocal !== null) return fromLocal;
+    return sessionStorage.getItem(key);
+}
+
+// ---------------- JSON normalization ----------------
+
 function normalizeQuizJson(rawJson: string, numberOfOptions: number): string {
     type Question = {
         question: string;
@@ -66,7 +78,6 @@ function normalizeQuizJson(rawJson: string, numberOfOptions: number): string {
         [key: string]: any;
     };
 
-    // Clean the raw JSON text a bit
     let cleaned = rawJson.trim();
     cleaned = cleaned.replace(/^```json/i, "").replace(/```$/i, "").trim();
 
@@ -77,7 +88,7 @@ function normalizeQuizJson(rawJson: string, numberOfOptions: number): string {
     } catch (e) {
         console.error("Failed to parse OpenAI JSON in normalizeQuizJson:", e);
         console.error("Cleaned content that failed to parse:", cleaned);
-        throw e; // Let caller decide what to do
+        throw e;
     }
 
     if (!Array.isArray(parsed.questions)) {
@@ -141,7 +152,7 @@ async function getOpenAiJSONResponse(
     input: string,
     numberOfOptions: number
 ): Promise<string> {
-    const secretKey = localStorage.getItem("secretKey") || "NONE";
+    const secretKey = getFromStorage("secretKey") || "NONE";
 
     const openai: OpenAI = new OpenAI({
         apiKey: secretKey,
@@ -210,19 +221,24 @@ function AddQuiz() {
     const [quizId, setQuizId] = useState<number>(-1);
     const [errors, setErrors] = useState<string[]>([]);
 
-    const url: string = "https://quick-quiz-257248753584.us-central1.run.app/api/quizzes";
+    const url = "https://quick-quiz-257248753584.us-central1.run.app/api/quizzes";
     const navigate = useNavigate();
 
-    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setErrors([]);
-        addQuiz();
+        await addQuiz();
     }
 
     async function addQuiz() {
-        const token = localStorage.getItem("token");
+        const token = getFromStorage("token");
         if (!token) {
             setErrors(["You must be logged in as a teacher to create a quiz."]);
+            return;
+        }
+
+        if (!quizForm.teacherId || Number(quizForm.teacherId) <= 0) {
+            setErrors(["Please enter a valid Teacher ID."]);
             return;
         }
 
@@ -242,20 +258,18 @@ function AddQuiz() {
             return;
         }
 
-        // Double-check that the AI JSON is parseable before sending to backend
         try {
             JSON.parse(aiResponse);
         } catch (e) {
             console.error("Final quiz JSON failed to parse, aborting:", e);
-            setErrors([
-                "Generated quiz data was invalid. Please try again."
-            ]);
+            setErrors(["Generated quiz data was invalid. Please try again."]);
             return;
         }
 
         quizForm.quizJSON = aiResponse;
 
         const payload = {
+            teacherId: Number(quizForm.teacherId),
             title: quizForm.title,
             description: quizForm.description,
             topic: quizForm.topic,
@@ -265,7 +279,7 @@ function AddQuiz() {
             quizJSON: quizForm.quizJSON
         };
 
-        const initHeaders: Headers = new Headers();
+        const initHeaders = new Headers();
         initHeaders.append("Content-Type", "application/json");
         initHeaders.append("Authorization", "Bearer " + token);
 
@@ -279,6 +293,8 @@ function AddQuiz() {
             .then((response) => {
                 if (response.status === 201 || response.status === 400) {
                     return response.json();
+                } else if (response.status === 403) {
+                    return Promise.reject("Forbidden (403) from backend.");
                 } else {
                     return Promise.reject(`Unexpected Status Code: ${response.status}`);
                 }
@@ -295,7 +311,9 @@ function AddQuiz() {
             })
             .catch((err) => {
                 console.error("Error creating quiz:", err);
-                setErrors(["An unexpected error occurred while creating the quiz."]);
+                setErrors([
+                    "An unexpected error occurred while creating the quiz. Check that you are logged in as a Teacher."
+                ]);
             });
     }
 
@@ -315,15 +333,15 @@ function AddQuiz() {
             return;
         }
 
-        const token: string = localStorage.getItem("token") || "DEFAULT";
-        const initHeaders: Headers = new Headers();
+        const token = getFromStorage("token") || "DEFAULT";
+        const initHeaders = new Headers();
         initHeaders.append("Content-Type", "application/json");
         initHeaders.append("Authorization", "Bearer " + token);
 
         jsonData.questions.forEach((q: any, index: number) => {
             const newQuestionForm: QUESTION_OPTIONS = {
                 ...defaultQuestionOptions,
-                quizId: quizId,
+                quizId,
                 questionText: q.question
             };
 
@@ -406,7 +424,11 @@ function AddQuiz() {
         const { name, value } = input.currentTarget;
         const newQuizForm: QUIZ_FORM_OPTIONS = { ...quizForm };
 
-        if (name === "numberOfQuestions" || name === "numberOfOptions") {
+        if (
+            name === "numberOfQuestions" ||
+            name === "numberOfOptions" ||
+            name === "teacherId"
+        ) {
             newQuizForm[name] = value === "" ? 0 : parseInt(value, 10);
         } else {
             newQuizForm[name] = value;
@@ -415,120 +437,126 @@ function AddQuiz() {
         setQuizForm(newQuizForm);
     }
 
-    // Authorization checks use localStorage now
-    if (localStorage.getItem("ROLE_Teacher") === null) {
+    const hasTeacherRole = getFromStorage("ROLE_Teacher") !== null;
+
+    if (!hasTeacherRole) {
         return (
             <div className="notfound-container">
                 <h1 className="notfound-heading">403</h1>
-                <p className="notfound-text">You shouldn't be here!</p>
+                <p className="notfound-text">You shouldn&apos;t be here!</p>
                 <a href="/" className="notfound-link">
                     Go back to Home
                 </a>
             </div>
         );
-    } else if (localStorage.getItem("secretKey") === null) {
+    } else if (!getFromStorage("secretKey")) {
         return (
-            <>
-                <div className="container">
-                    <p>Before creating a quiz, you need to insert your OpenAI Secret Key.</p>
-                    <p>Please go to &quot;Insert Your Secret Key&quot; above to do so.</p>
-                </div>
-            </>
+            <div className="container">
+                <p>Before creating a quiz, you need to insert your OpenAI Secret Key.</p>
+                <p>Please go to &quot;Insert Your Secret Key&quot; above to do so.</p>
+            </div>
         );
     }
 
     return (
-        <>
-            <section className="container">
-                <h2 className="mb-4">Create Quiz</h2>
+        <section className="container">
+            <h2 className="mb-4">Create Quiz</h2>
 
-                {errors.length > 0 && (
-                    <div className="alert alert-danger">
-                        <p>The Following Errors Were Found:</p>
-                        <ul>
-                            {errors.map((error) => (
-                                <li key={error}>{error}</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+            {errors.length > 0 && (
+                <div className="alert alert-danger">
+                    <p>The Following Errors Were Found:</p>
+                    <ul>
+                        {errors.map((error) => (
+                            <li key={error}>{error}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
-                <form onSubmit={handleSubmit}>
-                    <fieldset className="form-group">
-                        <label htmlFor="title">Quiz Title:</label>
-                        <input
-                            id="title"
-                            name="title"
-                            type="text"
-                            className="form-control"
-                            value={quizForm.title}
-                            onChange={handleChange}
-                            required
-                        />
-                    </fieldset>
-                    <fieldset className="form-group">
-                        <label htmlFor="description">Description:</label>
-                        <input
-                            id="description"
-                            name="description"
-                            type="text"
-                            className="form-control"
-                            value={quizForm.description}
-                            onChange={handleChange}
-                            required
-                        />
-                    </fieldset>
-                    <fieldset className="form-group">
-                        <label htmlFor="topic">Quiz Topic/Subject:</label>
-                        <input
-                            id="topic"
-                            name="topic"
-                            type="text"
-                            className="form-control"
-                            value={quizForm.topic}
-                            onChange={handleChange}
-                            required
-                        />
-                    </fieldset>
-                    <fieldset className="form-group">
-                        <label htmlFor="numberOfQuestions">Number of Questions:</label>
-                        <input
-                            id="numberOfQuestions"
-                            name="numberOfQuestions"
-                            type="number"
-                            className="form-control"
-                            value={quizForm.numberOfQuestions}
-                            onChange={handleChange}
-                            required
-                        />
-                    </fieldset>
-                    <fieldset className="form-group">
-                        <label htmlFor="numberOfOptions">Number of Options to Choose From:</label>
-                        <input
-                            id="numberOfOptions"
-                            name="numberOfOptions"
-                            type="number"
-                            className="form-control"
-                            value={quizForm.numberOfOptions}
-                            onChange={handleChange}
-                            required
-                        />
-                    </fieldset>
+            <form onSubmit={handleSubmit}>
+                <fieldset className="form-group">
+                    <label htmlFor="title">Quiz Title:</label>
+                    <input
+                        id="title"
+                        name="title"
+                        type="text"
+                        className="form-control"
+                        value={quizForm.title}
+                        onChange={handleChange}
+                        required
+                    />
+                </fieldset>
+                <fieldset className="form-group">
+                    <label htmlFor="description">Description:</label>
+                    <input
+                        id="description"
+                        name="description"
+                        type="text"
+                        className="form-control"
+                        value={quizForm.description}
+                        onChange={handleChange}
+                        required
+                    />
+                </fieldset>
+                <fieldset className="form-group">
+                    <label htmlFor="topic">Quiz Topic/Subject:</label>
+                    <input
+                        id="topic"
+                        name="topic"
+                        type="text"
+                        className="form-control"
+                        value={quizForm.topic}
+                        onChange={handleChange}
+                        required
+                    />
+                </fieldset>
+                <fieldset className="form-group">
+                    <label htmlFor="numberOfQuestions">Number of Questions:</label>
+                    <input
+                        id="numberOfQuestions"
+                        name="numberOfQuestions"
+                        type="number"
+                        className="form-control"
+                        value={quizForm.numberOfQuestions}
+                        onChange={handleChange}
+                        required
+                    />
+                </fieldset>
+                <fieldset className="form-group">
+                    <label htmlFor="numberOfOptions">Number of Options to Choose From:</label>
+                    <input
+                        id="numberOfOptions"
+                        name="numberOfOptions"
+                        type="number"
+                        className="form-control"
+                        value={quizForm.numberOfOptions}
+                        onChange={handleChange}
+                        required
+                    />
+                </fieldset>
+                <fieldset className="form-group">
+                    <label htmlFor="teacherId">Your Teacher ID:</label>
+                    <input
+                        id="teacherId"
+                        name="teacherId"
+                        type="number"
+                        className="form-control"
+                        value={quizForm.teacherId}
+                        onChange={handleChange}
+                        required
+                    />
+                </fieldset>
 
-                    <div className="mt-4">
-                        <button
-                            className="btn btn-outline-success mr-4"
-                            type="submit"
-                        >
-                            Create Quiz
-                        </button>
-                        <Link className="link btn btn-outline-danger" to={"/"} type="button">
-                            Cancel
-                        </Link>
-                    </div>
-                </form>
-            </section>
-        </>
+                <div className="mt-4">
+                    <button className="btn btn-outline-success mr-4" type="submit">
+                        Create Quiz
+                    </button>
+                    <Link className="link btn btn-outline-danger" to={"/"} type="button">
+                        Cancel
+                    </Link>
+                </div>
+            </form>
+        </section>
     );
 }
 
