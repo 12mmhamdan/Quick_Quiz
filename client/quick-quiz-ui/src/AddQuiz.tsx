@@ -231,11 +231,16 @@ function AddQuiz() {
     }
 
     async function addQuiz() {
-        const token = getFromStorage("token");
-        if (!token) {
-            setErrors(["You must be logged in as a teacher to create a quiz."]);
-            return;
-        }
+        const storedToken = getFromStorage("token");
+if (!storedToken) {
+    setErrors(["You must be logged in as a teacher to create a quiz."]);
+    return;
+}
+
+// Strip any leading "Bearer " and trim whitespace
+const rawToken = storedToken.trim().replace(/^Bearer\s+/i, "");
+const authHeader = `Bearer ${rawToken}`;
+
 
         if (!quizForm.teacherId || Number(quizForm.teacherId) <= 0) {
             setErrors(["Please enter a valid Teacher ID."]);
@@ -279,9 +284,11 @@ function AddQuiz() {
             quizJSON: quizForm.quizJSON
         };
 
-        const initHeaders = new Headers();
-        initHeaders.append("Content-Type", "application/json");
-        initHeaders.append("Authorization", "Bearer " + token);
+       const initHeaders = new Headers();
+initHeaders.append("Content-Type", "application/json");
+initHeaders.append("Authorization", authHeader);
+console.log("AUTH HEADER (quiz):", authHeader); // temporary debug
+
 
         const init: INIT = {
             method: "POST",
@@ -333,10 +340,15 @@ function AddQuiz() {
             return;
         }
 
-        const token = getFromStorage("token") || "DEFAULT";
-        const initHeaders = new Headers();
-        initHeaders.append("Content-Type", "application/json");
-        initHeaders.append("Authorization", "Bearer " + token);
+      const storedToken = getFromStorage("token");
+const rawToken = storedToken ? storedToken.trim().replace(/^Bearer\s+/i, "") : "DEFAULT";
+const authHeader = `Bearer ${rawToken}`;
+
+const initHeaders = new Headers();
+initHeaders.append("Content-Type", "application/json");
+initHeaders.append("Authorization", authHeader);
+console.log("AUTH HEADER (questions/options):", authHeader); // temporary debug
+
 
         jsonData.questions.forEach((q: any, index: number) => {
             const newQuestionForm: QUESTION_OPTIONS = {
