@@ -10,6 +10,7 @@ interface INIT {
 
 interface QUIZ_FORM_OPTIONS {
     [key: string]: number | string;
+    teacherId: number;
     title: string;
     description: string;
     topic: string;
@@ -20,6 +21,7 @@ interface QUIZ_FORM_OPTIONS {
 }
 
 const defaultQuizOptions: QUIZ_FORM_OPTIONS = {
+    teacherId: 0,
     title: "",
     description: "",
     topic: "",
@@ -77,7 +79,7 @@ function normalizeQuizJson(rawJson: string, numberOfOptions: number): string {
     } catch (e) {
         console.error("Failed to parse OpenAI JSON in normalizeQuizJson:", e);
         console.error("Cleaned content that failed to parse:", cleaned);
-        throw e; // Let caller decide what to do
+        throw e;
     }
 
     if (!Array.isArray(parsed.questions)) {
@@ -213,16 +215,21 @@ function AddQuiz() {
     const url: string = "https://quick-quiz-257248753584.us-central1.run.app/api/quizzes";
     const navigate = useNavigate();
 
-    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setErrors([]);
-        addQuiz();
+        await addQuiz();
     }
 
     async function addQuiz() {
         const token = localStorage.getItem("token");
         if (!token) {
             setErrors(["You must be logged in as a teacher to create a quiz."]);
+            return;
+        }
+
+        if (!quizForm.teacherId || Number(quizForm.teacherId) <= 0) {
+            setErrors(["Please enter a valid Teacher ID."]);
             return;
         }
 
@@ -247,15 +254,14 @@ function AddQuiz() {
             JSON.parse(aiResponse);
         } catch (e) {
             console.error("Final quiz JSON failed to parse, aborting:", e);
-            setErrors([
-                "Generated quiz data was invalid. Please try again."
-            ]);
+            setErrors(["Generated quiz data was invalid. Please try again."]);
             return;
         }
 
         quizForm.quizJSON = aiResponse;
 
         const payload = {
+            teacherId: Number(quizForm.teacherId),
             title: quizForm.title,
             description: quizForm.description,
             topic: quizForm.topic,
@@ -406,7 +412,11 @@ function AddQuiz() {
         const { name, value } = input.currentTarget;
         const newQuizForm: QUIZ_FORM_OPTIONS = { ...quizForm };
 
-        if (name === "numberOfQuestions" || name === "numberOfOptions") {
+        if (
+            name === "numberOfQuestions" ||
+            name === "numberOfOptions" ||
+            name === "teacherId"
+        ) {
             newQuizForm[name] = value === "" ? 0 : parseInt(value, 10);
         } else {
             newQuizForm[name] = value;
@@ -510,6 +520,18 @@ function AddQuiz() {
                             type="number"
                             className="form-control"
                             value={quizForm.numberOfOptions}
+                            onChange={handleChange}
+                            required
+                        />
+                    </fieldset>
+                    <fieldset className="form-group">
+                        <label htmlFor="teacherId">Your Teacher ID:</label>
+                        <input
+                            id="teacherId"
+                            name="teacherId"
+                            type="number"
+                            className="form-control"
+                            value={quizForm.teacherId}
                             onChange={handleChange}
                             required
                         />
