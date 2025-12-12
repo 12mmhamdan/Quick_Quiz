@@ -28,15 +28,31 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http.cors();
 
         http.authorizeRequests()
-                .antMatchers(HttpMethod.OPTIONS, "/**").permitAll() // allow preflight
+                // Allow preflight
+                .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Auth & registration are public
                 .antMatchers("/api/user/authenticate").permitAll()
                 .antMatchers("/api/user/register").permitAll()
                 .antMatchers("/api/user/**").permitAll()
-                .antMatchers(HttpMethod.GET, "/api/quizzes", "/api/quizzes/*").hasAnyRole("Teacher", "Student")
+
+                // ✅ NEW: AI endpoint – only Teachers can call it
+                .antMatchers(HttpMethod.POST, "/api/ai/generate-quiz").hasRole("Teacher")
+                // (If you ever add more AI endpoints, you can use: .antMatchers("/api/ai/**").hasRole("Teacher"))
+
+                // Quizzes
+                .antMatchers(HttpMethod.GET, "/api/quizzes", "/api/quizzes/*")
+                .hasAnyRole("Teacher", "Student")
                 .antMatchers("/api/quizzes/**").hasRole("Teacher")
+
+                // Quiz results
                 .antMatchers("/api/quiz-results").hasAnyRole("Teacher", "Student")
+
+                // Questions
                 .antMatchers("/api/questions").hasRole("Teacher")
                 .antMatchers("/api/questions/**").hasAnyRole("Teacher", "Student")
+
+                // Everything else under /api requires authentication
                 .anyRequest().authenticated()
                 .and()
                 .addFilter(new JwtRequestFilter(authenticationManager(), converter))
@@ -61,10 +77,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("https://quick-quiz-ecru.vercel.app")// Allow the React app to communicate with the backend
+                        .allowedOrigins("https://quick-quiz-ecru.vercel.app")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
-                        .allowCredentials(true);// Allow all HTTP methods
+                        .allowCredentials(true);
             }
         };
     }
